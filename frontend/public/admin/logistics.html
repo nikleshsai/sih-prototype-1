@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Route optimization and delivery tracking for FarmConnect Admin." />
+  <title>Logistics Management — Admin FarmConnect</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    /* ── Logistics row card ── */
+    .logi-row {
+      display: grid;
+      grid-template-columns: 130px 110px 1fr 1fr 80px 100px auto;
+      gap: 10px;
+      align-items: center;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+    .logi-row:last-child { border-bottom: none; }
+    .logi-row:hover { background: var(--bg-elevated); }
+
+    /* ── Status badge with dot ── */
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+
+    /* ── Route stop ── */
+    .route-stop {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 9px 12px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      margin-bottom: 6px;
+      font-size: 0.8rem;
+    }
+    .route-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .route-icon.pickup   { background: rgba(46,204,113,0.15); color: var(--primary); }
+    .route-icon.delivery { background: rgba(56,139,253,0.15); color: var(--accent-blue); }
+    .route-label   { font-weight: 700; }
+    .route-address { color: var(--text-muted); font-size: 0.72rem; margin-top: 2px; }
+    .route-meta    { color: var(--primary);    font-size: 0.7rem;  margin-top: 2px; }
+
+    /* ── Timeline ── */
+    .track-timeline { border-left: 2px solid var(--border); padding-left: 18px; margin-left: 8px; }
+    .track-event { position: relative; padding-bottom: 16px; }
+    .track-event:last-child { padding-bottom: 0; }
+    .track-event::before {
+      content: '';
+      position: absolute;
+      left: -25px; top: 4px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border);
+    }
+    .track-event.completed::before { background: var(--accent-success); border-color: var(--accent-success); }
+    .track-event.active::before    { background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 4px rgba(46,204,113,0.2); }
+    .track-label { font-size: 0.82rem; font-weight: 700; }
+    .track-desc  { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Stats row ── */
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .mini-stat {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+    .mini-stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+    .mini-stat-value { font-size: 1.3rem; font-weight: 800; color: var(--text-primary); margin-top: 4px; }
+
+    /* ── Demo banner ── */
+    .demo-banner {
+      background: linear-gradient(135deg, rgba(46,204,113,0.08), rgba(56,139,253,0.08));
+      border: 1px solid rgba(46,204,113,0.25);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.82rem;
+    }
+
+    /* section label */
+    .section-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-muted);
+      margin: 16px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* filter tabs */
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Admin Console</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <a href="/admin/dashboard.html" class="nav-item"><span class="nav-icon">&#9635;</span> Dashboard</a>
+      <div class="nav-section">Management</div>
+      <a href="/admin/farmers.html"   class="nav-item"><span class="nav-icon">&#9651;</span> Farmers</a>
+      <a href="/admin/customers.html" class="nav-item"><span class="nav-icon">&#9711;</span> Buyers</a>
+      <a href="/admin/orders.html"    class="nav-item"><span class="nav-icon">&#9660;</span> Orders</a>
+      <div class="nav-section">Intelligence</div>
+      <a href="/admin/analytics.html" class="nav-item"><span class="nav-icon">&#9636;</span> Analytics</a>
+      <a href="/admin/logistics.html" class="nav-item active"><span class="nav-icon">&#9654;</span> Logistics</a>
+      <div class="nav-section">Security</div>
+      <a href="/admin/audit.html"     class="nav-item"><span class="nav-icon">&#128274;</span> Audit Log</a>
+    </nav>
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">&#x2192; Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="top-header">
+      <div>
+        <span class="header-title">&#9654; Logistics Management</span>
+        <span class="header-subtitle">Route optimization and delivery tracking</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn btn-primary btn-sm" onclick="showPlanModal()">+ Plan New Route</button>
+        <span class="badge badge-danger">ADMIN</span>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Demo banner -->
+      <div class="demo-banner" id="demo-banner" style="display:none;">
+        <span style="font-size:1.4rem;">&#128666;</span>
+        <div>
+          <strong>Demo Mode:</strong> Showing sample logistics plans. These represent a real multi-farm pickup → buyer delivery route flow.
+        </div>
+      </div>
+
+      <!-- Summary stats -->
+      <div class="mini-stats" id="mini-stats">
+        <div class="mini-stat">
+          <div class="mini-stat-label">&#9899; Planned</div>
+          <div class="mini-stat-value" id="cnt-planned">—</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">&#128220; Loading</div>
+          <div class="mini-stat-value" id="cnt-loading">—</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">&#128666; In Transit</div>
+          <div class="mini-stat-value" id="cnt-transit">—</div>
+        </div>
+        <div class="mini-stat">
+          <div class="mini-stat-label">&#10003; Delivered</div>
+          <div class="mini-stat-value" id="cnt-delivered">—</div>
+        </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="filter-tabs">
+        <button class="btn btn-primary btn-sm" id="ftab-all"       onclick="filterLogistics('all')">All</button>
+        <button class="btn btn-outline btn-sm" id="ftab-planned"   onclick="filterLogistics('planned')">&#9899; Planned</button>
+        <button class="btn btn-outline btn-sm" id="ftab-loading"   onclick="filterLogistics('loading')">&#128220; Loading</button>
+        <button class="btn btn-outline btn-sm" id="ftab-in_transit" onclick="filterLogistics('in_transit')">&#128666; In Transit</button>
+        <button class="btn btn-outline btn-sm" id="ftab-delivered" onclick="filterLogistics('delivered')">&#10003; Delivered</button>
+      </div>
+
+      <!-- Table card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">&#128666; Active Logistics Plans</span>
+          <span id="logi-count" style="font-size:0.75rem; color:var(--text-muted);"></span>
+        </div>
+        <div id="logistics-table">
+          <div style="padding:40px; text-align:center; color:var(--text-muted);">
+            <div style="font-size:2rem; margin-bottom:8px;">&#128666;</div>
+            <p>Loading logistics plans…</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ PLAN ROUTE MODAL ═══════════════════════════════ -->
+<div class="modal-overlay" id="plan-modal">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h3 class="modal-title">&#9654; Plan Logistics Route</h3>
+      <button class="modal-close" onclick="closePlanModal()"></button>
+    </div>
+
+    <div style="overflow-y:auto; max-height:70vh;">
+      <div class="form-group">
+        <label class="form-label">Order ID <span class="required">*</span></label>
+        <input id="plan-order-id" type="number" class="form-input" placeholder="Enter confirmed order ID" />
+        <span class="form-hint">Only confirmed orders with farmer assignments can be routed</span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Vehicle Type</label>
+          <select id="plan-vehicle-type" class="form-select">
+            <option value="mini_truck">Mini Truck (≤2t)</option>
+            <option value="tempo">Tempo (≤1t)</option>
+            <option value="medium_truck">Medium Truck (≤5t)</option>
+            <option value="large_truck">Large Truck (≤10t)</option>
+            <option value="refrigerated">Refrigerated Van</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Capacity (kg) <span class="required">*</span></label>
+          <input id="plan-capacity" type="number" class="form-input" value="3000" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Driver Name</label>
+          <input id="plan-driver" class="form-input" placeholder="Driver full name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Driver Mobile</label>
+          <input id="plan-mobile" class="form-input" placeholder="10-digit number" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Logistics Provider</label>
+          <input id="plan-provider" class="form-input" placeholder="Company name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Vehicle Number</label>
+          <input id="plan-vehicle-no" class="form-input" placeholder="TN09AB1234" />
+        </div>
+      </div>
+
+      <div id="route-preview"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closePlanModal()">Cancel</button>
+      <button class="btn btn-outline btn-sm" onclick="previewRoute()">&#128205; Preview Route</button>
+      <button class="btn btn-primary" id="submit-plan-btn" onclick="submitPlan()">
+        &#10003; Create Plan
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ ROUTE DETAIL MODAL ════════════════════════════ -->
+<div class="modal-overlay" id="route-modal">
+  <div class="modal" style="max-width:660px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="route-modal-title">&#9654; Route Plan</h3>
+      <button class="modal-close" onclick="closeRouteModal()"></button>
+    </div>
+    <div id="route-detail-body" style="max-height:75vh; overflow-y:auto;"></div>
+    <div class="modal-footer" id="route-actions"></div>
+  </div>
+</div>
+
+
+<!-- ═══ SCRIPTS ════════════════════════════════════════ -->
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+
+<script>
+/* ════════════════════════════════════════════════
+   DEMO DATA — used when API returns nothing
+════════════════════════════════════════════════ */
+const DEMO_LOGISTICS = [
+  {
+    id: 2001,
+    order_ref: 'ORD-DEMO-001',
+    crop_name: 'Tomato',
+    vehicle_type: 'mini_truck',
+    vehicle_number: 'TN 09 AB 1234',
+    driver_name: 'Kumar Raj',
+    driver_mobile: '9876500001',
+    provider_name: 'SpeedMove Logistics',
+    estimated_distance_km: 148,
+    estimated_duration_min: 195,
+    status: 'in_transit',
+    dispatched_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+    delivered_at: null,
+    current_lat: 12.82,
+    current_lng: 79.69,
+    last_location_update: new Date(Date.now() - 15 * 60000).toISOString(),
+    route_plan: JSON.stringify({
+      total_distance_km: 148,
+      estimated_duration_min: 195,
+      total_load_kg: 500,
+      optimization_method: 'nearest_neighbor',
+      stops: [
+        { type: 'pickup',   farmer_name: 'Ramu Krishnan',  address: 'Katpadi, Vellore',              quantity_kg: 300, cumulative_load_kg: 300, distance_from_prev_km: 0  },
+        { type: 'pickup',   farmer_name: 'Selvam Murugan', address: 'Cheranmahadevi, Tirunelveli',   quantity_kg: 200, cumulative_load_kg: 500, distance_from_prev_km: 65 },
+        { type: 'delivery', customer_name: 'Karthik Supermarket', address: 'Chennai, Tamil Nadu',   quantity_kg: null,cumulative_load_kg: 0,   distance_from_prev_km: 83 },
+      ],
+    }),
+    _demo: true,
+  },
+  {
+    id: 2002,
+    order_ref: 'ORD-DEMO-002',
+    crop_name: 'Onion',
+    vehicle_type: 'mini_truck',
+    vehicle_number: 'TN 33 CD 5678',
+    driver_name: 'Suresh Babu',
+    driver_mobile: '9876500002',
+    provider_name: 'AgroTrans TN',
+    estimated_distance_km: 210,
+    estimated_duration_min: 270,
+    status: 'planned',
+    dispatched_at: null,
+    delivered_at: null,
+    current_lat: null,
+    current_lng: null,
+    last_location_update: null,
+    route_plan: JSON.stringify({
+      total_distance_km: 210,
+      estimated_duration_min: 270,
+      total_load_kg: 800,
+      optimization_method: 'nearest_neighbor',
+      stops: [
+        { type: 'pickup',   farmer_name: 'Anbu Raj',   address: 'Pollachi, Coimbatore', quantity_kg: 800, cumulative_load_kg: 800, distance_from_prev_km: 0   },
+        { type: 'delivery', customer_name: 'Hotel Royal Kitchen', address: 'Coimbatore, Tamil Nadu', quantity_kg: null, cumulative_load_kg: 0, distance_from_prev_km: 210 },
+      ],
+    }),
+    _demo: true,
+  },
+  {
+    id: 2003,
+    order_ref: 'ORD-DEMO-004',
+    crop_name: 'Carrot',
+    vehicle_type: 'refrigerated',
+    vehicle_number: 'TN 22 EF 9012',
+    driver_name: 'Mani Vel',
+    driver_mobile: '9876500003',
+    provider_name: 'CoolFreeze Agri',
+    estimated_distance_km: 92,
+    estimated_duration_min: 120,
+    status: 'delivered',
+    dispatched_at: new Date(Date.now() - 26 * 3600000).toISOString(),
+    delivered_at: new Date(Date.now() - 20 * 3600000).toISOString(),
+    current_lat: null,
+    current_lng: null,
+    last_location_update: null,
+    route_plan: JSON.stringify({
+      total_distance_km: 92,
+      estimated_duration_min: 120,
+      total_load_kg: 300,
+      optimization_method: 'nearest_neighbor',
+      stops: [
+        { type: 'pickup',   farmer_name: 'Lakshmi Devi', address: 'Attur, Salem', quantity_kg: 300, cumulative_load_kg: 300, distance_from_prev_km: 0  },
+        { type: 'delivery', customer_name: 'Fresh Foods Processor', address: 'Chennai, Tamil Nadu', quantity_kg: null, cumulative_load_kg: 0, distance_from_prev_km: 92 },
+      ],
+    }),
+    _demo: true,
+  },
+];
+
+/* ════════════════════════════════════════════════
+   State
+════════════════════════════════════════════════ */
+let _allLogistics  = [];
+let _activeFilter  = 'all';
+let _isDemo        = false;
+
+/* ════════════════════════════════════════════════
+   Load logistics
+════════════════════════════════════════════════ */
+async function loadLogistics() {
+  document.getElementById('logistics-table').innerHTML = `
+    <div style="padding:40px; text-align:center; color:var(--text-muted);">
+      <div style="font-size:2rem; margin-bottom:8px;">&#128666;</div>
+      <p>Loading logistics plans…</p>
+    </div>`;
+
+  try {
+    const data     = await API.get('/api/admin/logistics');
+    const logistics = data?.logistics || [];
+
+    if (!logistics.length) {
+      _allLogistics = DEMO_LOGISTICS;
+      _isDemo       = true;
+      document.getElementById('demo-banner').style.display = 'flex';
+    } else {
+      _allLogistics = logistics;
+      _isDemo       = false;
+    }
+  } catch (err) {
+    console.warn('[Logistics] API error, using demo data:', err?.status || err);
+    _allLogistics = DEMO_LOGISTICS;
+    _isDemo       = true;
+    document.getElementById('demo-banner').style.display = 'flex';
+  }
+
+  renderLogisticsTable(_activeFilter);
+}
+
+/* ════════════════════════════════════════════════
+   Render table
+════════════════════════════════════════════════ */
+function renderLogisticsTable(filter) {
+  _activeFilter = filter;
+
+  // Update tab buttons
+  ['all','planned','loading','in_transit','delivered'].forEach(t => {
+    const el = document.getElementById('ftab-' + t);
+    if (el) el.className = `btn btn-sm ${t === filter ? 'btn-primary' : 'btn-outline'}`;
+  });
+
+  const filtered = filter === 'all'
+    ? _allLogistics
+    : _allLogistics.filter(l => l.status === filter);
+
+  // Count stats
+  const cnt = { planned: 0, loading: 0, in_transit: 0, delivered: 0 };
+  _allLogistics.forEach(l => { if (cnt[l.status] !== undefined) cnt[l.status]++; });
+  document.getElementById('cnt-planned').textContent   = cnt.planned;
+  document.getElementById('cnt-loading').textContent   = cnt.loading;
+  document.getElementById('cnt-transit').textContent   = cnt.in_transit;
+  document.getElementById('cnt-delivered').textContent = cnt.delivered;
+  document.getElementById('logi-count').textContent    = `${filtered.length} plan${filtered.length !== 1 ? 's' : ''}`;
+
+  const container = document.getElementById('logistics-table');
+
+  if (!filtered.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon" style="font-size:2rem;">&#128666;</div>
+        <h3>${filter === 'all' ? 'No logistics plans yet' : 'No ' + filter.replace('_',' ') + ' plans'}</h3>
+        <p>${filter === 'all' ? 'Create a route from a confirmed order using "+ Plan New Route".' : 'Try a different status filter.'}</p>
+      </div>`;
+    return;
+  }
+
+  const statusColor = {
+    planned:    '#388BFD',
+    loading:    '#D29922',
+    in_transit: '#F0883E',
+    delivered:  '#2ECC71',
+    cancelled:  '#F85149',
+  };
+
+  const nextAction = (l) => {
+    if (l.status === 'planned')   return `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();updateStatus(${l.id},'loading')">&#128220; Start Loading</button>`;
+    if (l.status === 'loading')   return `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();updateStatus(${l.id},'in_transit')">&#128666; Dispatch</button>`;
+    if (l.status === 'in_transit')return `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();updateStatus(${l.id},'delivered')">&#10003; Delivered</button>`;
+    return '';
+  };
+
+  container.innerHTML = `
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Order Ref</th>
+            <th>Crop</th>
+            <th>Vehicle</th>
+            <th>Driver</th>
+            <th>Distance</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(l => `
+            <tr style="cursor:pointer;" onclick="viewRoute(${l.id})">
+              <td>
+                <code style="font-size:0.75rem; color:var(--primary); font-weight:700;">
+                  ${escapeHtml(l.order_ref || '—')}
+                </code>
+              </td>
+              <td><strong>${escapeHtml(l.crop_name || '—')}</strong></td>
+              <td>
+                <div style="font-size:0.8rem;">${(l.vehicle_type || '').replace(/_/g,' ')}</div>
+                <small style="color:var(--text-muted);">${escapeHtml(l.vehicle_number || '')}</small>
+              </td>
+              <td>
+                <div style="font-size:0.82rem;">${escapeHtml(l.driver_name || '—')}</div>
+                <small style="color:var(--text-muted);">${escapeHtml(l.driver_mobile || '')}</small>
+              </td>
+              <td>
+                ${l.estimated_distance_km ? `<strong>${l.estimated_distance_km}</strong> km` : '—'}
+                ${l.estimated_duration_min ? `<br><small style="color:var(--text-muted);">${Math.floor(l.estimated_duration_min/60)}h ${l.estimated_duration_min%60}m</small>` : ''}
+              </td>
+              <td>
+                <span style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:700;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:${statusColor[l.status]||'#888'};display:inline-block;"></span>
+                  ${(l.status||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
+                </span>
+              </td>
+              <td onclick="event.stopPropagation();" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" onclick="viewRoute(${l.id})">&#128205; View</button>
+                ${nextAction(l)}
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════
+   Filter helper
+════════════════════════════════════════════════ */
+function filterLogistics(filter) { renderLogisticsTable(filter); }
+
+/* ════════════════════════════════════════════════
+   View route detail
+════════════════════════════════════════════════ */
+function viewRoute(id) {
+  const l = _allLogistics.find(x => x.id === id);
+  if (!l) return;
+
+  let plan = {};
+  try { plan = JSON.parse(l.route_plan || '{}'); } catch {}
+
+  document.getElementById('route-modal-title').textContent = `▶ Route — ${l.order_ref}`;
+
+  const st          = l.status || '';
+  const isLoading   = st === 'loading';
+  const isTransit   = ['in_transit','delivered'].includes(st);
+  const isDelivered = st === 'delivered';
+
+  const statusColor = { planned:'#388BFD', loading:'#D29922', in_transit:'#F0883E', delivered:'#2ECC71' };
+
+  const stopsHtml = (plan.stops || []).map(s => `
+    <div class="route-stop">
+      <div class="route-icon ${s.type}">${s.type === 'pickup' ? '&#128194;' : '&#127974;'}</div>
+      <div style="flex:1;">
+        <div class="route-label">${s.type === 'pickup' ? 'Pickup · ' + escapeHtml(s.farmer_name || '') : 'Delivery · ' + escapeHtml(s.customer_name || '')}</div>
+        <div class="route-address">${escapeHtml(s.address || '')}</div>
+        <div class="route-meta">
+          ${s.type === 'pickup' ? formatKg(s.quantity_kg) + ' &nbsp;·&nbsp; ' : ''}
+          Cumulative: ${formatKg(s.cumulative_load_kg)} &nbsp;·&nbsp; +${s.distance_from_prev_km} km
+        </div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('route-detail-body').innerHTML = `
+
+    <!-- Stats row -->
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;">
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center;">
+        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">Distance</div>
+        <div style="font-size:1.2rem;font-weight:800;">${plan.total_distance_km || l.estimated_distance_km || '—'} km</div>
+      </div>
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center;">
+        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">Duration</div>
+        <div style="font-size:1.2rem;font-weight:800;">
+          ${plan.estimated_duration_min || l.estimated_duration_min
+            ? Math.floor((plan.estimated_duration_min||l.estimated_duration_min)/60)+'h '+(plan.estimated_duration_min||l.estimated_duration_min)%60+'m'
+            : '—'}
+        </div>
+      </div>
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center;">
+        <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);">Total Load</div>
+        <div style="font-size:1.2rem;font-weight:800;">${formatKg(plan.total_load_kg)}</div>
+      </div>
+    </div>
+
+    <!-- Vehicle + Driver info -->
+    <div style="background:var(--bg-elevated);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;font-size:0.82rem;">
+      <div style="display:flex;flex-wrap:wrap;gap:14px;">
+        <div>&#128663; <strong>${(l.vehicle_type||'').replace(/_/g,' ')} · ${escapeHtml(l.vehicle_number||'')}</strong></div>
+        <div>&#128101; <strong>${escapeHtml(l.driver_name||'—')}</strong>${l.driver_mobile ? ` &nbsp;<a href="tel:${escapeHtml(l.driver_mobile)}" style="color:var(--primary);">${escapeHtml(l.driver_mobile)}</a>` : ''}</div>
+        ${l.provider_name ? `<div>&#127970; ${escapeHtml(l.provider_name)}</div>` : ''}
+      </div>
+      ${l.current_lat ? `
+        <div style="margin-top:8px;font-size:0.75rem;color:var(--primary);">
+          &#128204; Last position: ${l.current_lat}, ${l.current_lng}
+          (${timeAgo(l.last_location_update)})
+        </div>` : ''}
+    </div>
+
+    <!-- Delivery Timeline -->
+    <div class="section-label">&#9200; Delivery Timeline</div>
+    <div class="track-timeline">
+      <div class="track-event completed">
+        <div class="track-label">&#10003; Route Planned</div>
+        <div class="track-desc">Stops optimized using ${plan.optimization_method || 'nearest neighbor'} algorithm</div>
+      </div>
+      <div class="track-event ${isTransit||isDelivered ? 'completed' : isLoading ? 'active' : ''}">
+        <div class="track-label">&#128220; Loading Produce</div>
+        <div class="track-desc">Picking up from ${(plan.stops||[]).filter(s=>s.type==='pickup').length} farm location(s)</div>
+      </div>
+      <div class="track-event ${isDelivered ? 'completed' : isTransit ? 'active' : ''}">
+        <div class="track-label">&#128666; In Transit</div>
+        <div class="track-desc">${l.dispatched_at ? 'Dispatched ' + timeAgo(l.dispatched_at) : 'Awaiting dispatch'}</div>
+      </div>
+      <div class="track-event ${isDelivered ? 'completed' : ''}">
+        <div class="track-label">&#127881; Delivered</div>
+        <div class="track-desc">${l.delivered_at ? 'Completed ' + timeAgo(l.delivered_at) : 'Pending'}</div>
+      </div>
+    </div>
+
+    <!-- Route Stops -->
+    <div class="section-label">&#128205; Route Stops</div>
+    ${stopsHtml || '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px;">No route stops available.</div>'}
+
+    <!-- Status update -->
+    ${l.status !== 'delivered' && l.status !== 'cancelled' ? `
+      <div class="section-label">&#9881; Update Status</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${l.status === 'planned'    ? `<button class="btn btn-warn btn-sm"    onclick="updateStatus(${l.id},'loading');closeRouteModal()">&#128220; Mark Loading</button>` : ''}
+        ${l.status === 'loading'    ? `<button class="btn btn-primary btn-sm" onclick="updateStatus(${l.id},'in_transit');closeRouteModal()">&#128666; Dispatch Now</button>` : ''}
+        ${l.status === 'in_transit' ? `<button class="btn btn-primary btn-sm" onclick="updateStatus(${l.id},'delivered');closeRouteModal()">&#10003; Mark Delivered</button>` : ''}
+        <button class="btn btn-ghost btn-sm" style="color:var(--accent-admin);" onclick="updateStatus(${l.id},'cancelled');closeRouteModal()">&#10005; Cancel Route</button>
+      </div>` : ''}`;
+
+  document.getElementById('route-actions').innerHTML = `
+    <button class="btn btn-ghost" onclick="closeRouteModal()">Close</button>`;
+  document.getElementById('route-modal').classList.add('show');
+}
+
+/* ════════════════════════════════════════════════
+   Update status
+════════════════════════════════════════════════ */
+async function updateStatus(id, status) {
+  if (_isDemo) {
+    // Update local demo state
+    const l = _allLogistics.find(x => x.id === id);
+    if (l) {
+      l.status = status;
+      if (status === 'in_transit') l.dispatched_at = new Date().toISOString();
+      if (status === 'delivered')  l.delivered_at  = new Date().toISOString();
+    }
+    showToast(`Status updated to "${status.replace(/_/g,' ')}" (demo)`, 'success');
+    renderLogisticsTable(_activeFilter);
+    return;
+  }
+
+  try {
+    await API.patch(`/api/admin/logistics/${id}/status`, { status });
+    showToast(`Status updated to "${status.replace(/_/g,' ')}"`, 'success');
+    loadLogistics();
+  } catch (e) {
+    console.error('[Logistics Status]', e);
+  }
+}
+
+/* ════════════════════════════════════════════════
+   Plan route modal
+════════════════════════════════════════════════ */
+function showPlanModal()  { document.getElementById('plan-modal').classList.add('show'); }
+function closePlanModal() {
+  document.getElementById('plan-modal').classList.remove('show');
+  document.getElementById('route-preview').innerHTML = '';
+}
+function closeRouteModal() { document.getElementById('route-modal').classList.remove('show'); }
+
+async function previewRoute() {
+  const orderId = document.getElementById('plan-order-id').value;
+  if (!orderId) { showToast('Enter an order ID', 'warn'); return; }
+
+  document.getElementById('route-preview').innerHTML = `
+    <div style="padding:12px; text-align:center; color:var(--text-muted);">Fetching order info…</div>`;
+
+  try {
+    const data = await API.get(`/api/admin/orders/${orderId}`);
+    const o    = data.order;
+    const a    = data.assignments || [];
+    document.getElementById('route-preview').innerHTML = `
+      <div class="alert alert-info" style="margin-top:12px;">
+        <span class="alert-icon">&#9432;</span>
+        <span>
+          <strong>${escapeHtml(o.order_ref)}</strong> — ${escapeHtml(o.crop_name)} ·
+          ${formatKg(o.quantity_kg_requested)} · ${a.length} farmer pickup point(s) ·
+          Delivery to ${escapeHtml(o.delivery_district)}
+        </span>
+      </div>`;
+  } catch (e) {
+    document.getElementById('route-preview').innerHTML = `
+      <div class="alert alert-warn" style="margin-top:12px;">
+        <span class="alert-icon">&#9888;</span>
+        <span>Order not found or not ready for logistics (must be confirmed + have farmer assignments).</span>
+      </div>`;
+  }
+}
+
+async function submitPlan() {
+  const orderId = parseInt(document.getElementById('plan-order-id').value);
+  const capacity = parseFloat(document.getElementById('plan-capacity').value);
+  if (!orderId || !capacity) { showToast('Fill in Order ID and Capacity', 'warn'); return; }
+
+  const btn = document.getElementById('submit-plan-btn');
+  setLoading(btn, true);
+
+  try {
+    const data = await API.post('/api/admin/logistics/plan', {
+      order_id:          orderId,
+      vehicle_type:      document.getElementById('plan-vehicle-type').value,
+      vehicle_capacity_kg: capacity,
+      driver_name:       document.getElementById('plan-driver').value || null,
+      driver_mobile:     document.getElementById('plan-mobile').value || null,
+      provider_name:     document.getElementById('plan-provider').value || null,
+      vehicle_number:    document.getElementById('plan-vehicle-no').value || null,
+    });
+    showToast('Logistics plan created with optimized route!', 'success');
+    closePlanModal();
+    loadLogistics();
+    if (data.route_plan) {
+      // briefly show route result
+      const newId = data.logistics_id;
+      setTimeout(() => viewRoute(newId), 500);
+    }
+  } catch (e) {
+    console.error('[Plan Route]', e);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+/* ── Helper: time ago ── */
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+/* ── Bootstrap ── */
+loadLogistics();
+</script>
+
+<script>
+  const ls = document.getElementById('nav-lang-switcher');
+  if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+</script>
+
+</body>
+</html>

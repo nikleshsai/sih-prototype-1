@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmer Dashboard — FarmConnect</title>
+  <meta name="description" content="FarmConnect Farmer Portal — Manage your crops, orders and earnings">
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    .forecast-card {
+      background: linear-gradient(135deg, rgba(46,204,113,0.1), rgba(26,138,74,0.05));
+      border: 1px solid rgba(46,204,113,0.2);
+    }
+    .crop-listing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .crop-listing-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--primary-glow);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .stat-loading {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-md);
+      height: 80px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
+    .section-empty { padding:32px;text-align:center;color:var(--text-muted);font-size:0.85rem; }
+    .section-error { padding:24px;text-align:center;color:var(--accent-admin);font-size:0.85rem; }
+    .retry-btn {
+      margin-top:10px;padding:6px 16px;background:var(--bg-elevated);
+      border:1px solid var(--border);border-radius:var(--radius-sm);
+      color:var(--text-secondary);cursor:pointer;font-size:0.8rem;
+    }
+    .retry-btn:hover { background:var(--border);color:var(--text-primary); }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Farmer Portal</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">My Farm</div>
+      <a href="/farmer/dashboard.html" class="nav-item active"><span class="nav-icon">&#9635;</span> Dashboard</a>
+      <a href="/farmer/profile.html" class="nav-item"><span class="nav-icon">&#9711;</span> My Profile</a>
+      <a href="/farmer/supply.html" class="nav-item"><span class="nav-icon">&#9651;</span> My Crops</a>
+      <div class="nav-section">Market</div>
+      <a href="/farmer/forecast.html" class="nav-item"><span class="nav-icon">&#9650;</span> Demand Forecast</a>
+      <div class="nav-section">Business</div>
+      <a href="/farmer/orders.html" class="nav-item"><span class="nav-icon">&#9660;</span> My Orders</a>
+    </nav>
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+    <div class="sidebar-footer">
+      <div id="farmer-info" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;padding:0 4px;"></div>
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-content">
+    <header class="top-header">
+      <div>
+        <span class="header-title">&#9651; Farmer Dashboard</span>
+        <span class="header-subtitle" id="farmer-welcome">Loading...</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="verification-status-badge"></span>
+        <button class="btn btn-primary btn-sm" onclick="window.location.href='/farmer/supply.html'">+ Add Crop</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Profile alert -->
+      <div id="profile-alert" class="hidden"></div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-loading" style="border-top:3px solid var(--primary);border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="border-top:3px solid var(--accent-warn);border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="border-top:3px solid var(--accent-info);border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="border-top:3px solid var(--accent-success);border-radius:var(--radius-md);"></div>
+      </div>
+
+      <div class="grid-2" style="margin-top:20px;">
+        <!-- 7-Day Demand -->
+        <div class="card forecast-card">
+          <div class="card-header">
+            <span class="card-title">&#9650; 7-Day Demand in Your District</span>
+            <a href="/farmer/forecast.html" class="btn btn-ghost btn-sm">Full Forecast</a>
+          </div>
+          <div id="weekly-demand-chart" style="margin-bottom:8px;"></div>
+          <div id="weekly-demand-summary" style="font-size:0.75rem;color:var(--text-muted);"></div>
+        </div>
+
+        <!-- My Active Listings -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">&#9651; My Active Listings</span>
+            <a href="/farmer/supply.html" class="btn btn-ghost btn-sm">Manage</a>
+          </div>
+          <div id="my-listings">
+            <div class="section-empty">Loading listings...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Order Assignments -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <span class="card-title">&#9660; Pending Order Assignments</span>
+          <a href="/farmer/orders.html" class="btn btn-ghost btn-sm">All Orders</a>
+        </div>
+        <div id="pending-orders">
+          <div class="section-empty">Loading assignments...</div>
+        </div>
+      </div>
+
+      <!-- Earnings Summary -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <span class="card-title">&#8377; Earnings Summary</span>
+        </div>
+        <div id="earnings-summary">
+          <div class="section-empty">Loading earnings...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  function el(id) { return document.getElementById(id); }
+
+  function renderSectionError(id, msg, retryFn) {
+    el(id).innerHTML =
+      '<div class="section-error">' + msg +
+      (retryFn ? '<br><button class="retry-btn" onclick="(' + retryFn.toString() + ')()">Retry</button>' : '') +
+      '</div>';
+  }
+
+  function renderStatsError() {
+    el('stats-grid').innerHTML =
+      '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--accent-admin);">' +
+        'Failed to load stats. <button class="retry-btn" onclick="loadDashboardData()">Retry</button>' +
+      '</div>';
+  }
+
+  function renderStats(listings, orders, earnings) {
+    var currentListings = listings.filter(function(l) {
+      return l.supply_type === 'current' && l.status === 'active';
+    });
+    var expectedListings = listings.filter(function(l) {
+      return l.supply_type === 'expected' && l.status === 'active';
+    });
+    var pendingAssignments = orders.filter(function(o) {
+      return o.farmer_status === 'pending';
+    });
+    var totalKg = currentListings.reduce(function(s, l) {
+      return s + (l.available_kg || 0);
+    }, 0);
+
+    el('stats-grid').innerHTML =
+      '<div class="stat-card" style="--stat-color:var(--primary)">' +
+        '<div class="stat-label">&#9651; Available Stock</div>' +
+        '<div class="stat-value">' + formatKg(totalKg) + '</div>' +
+        '<div class="stat-sub">' + currentListings.length + ' current listings</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:var(--accent-warn)">' +
+        '<div class="stat-label">&#9650; Expected Harvest</div>' +
+        '<div class="stat-value">' + expectedListings.length + '</div>' +
+        '<div class="stat-sub">Upcoming crops registered</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:var(--accent-info)">' +
+        '<div class="stat-label">&#9660; Pending Assignments</div>' +
+        '<div class="stat-value">' + pendingAssignments.length + '</div>' +
+        '<div class="stat-sub">Awaiting your response</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:var(--accent-success)">' +
+        '<div class="stat-label">&#8377; Total Earned</div>' +
+        '<div class="stat-value">' + formatCurrency(earnings.total_earned_inr || 0) + '</div>' +
+        '<div class="stat-sub">' + formatCurrency(earnings.pending_inr || 0) + ' pending</div>' +
+      '</div>';
+  }
+
+  function renderListings(listings) {
+    var container = el('my-listings');
+    if (!listings.length) {
+      container.innerHTML =
+        '<div class="section-empty">' +
+          '<div style="font-size:1.5rem;margin-bottom:8px;">&#9651;</div>' +
+          '<strong>No crop listings yet</strong>' +
+          '<p style="margin-top:4px;">Add your first crop to start receiving orders</p>' +
+          '<a href="/farmer/supply.html" class="btn btn-primary btn-sm" style="margin-top:10px;">+ Add Crop</a>' +
+        '</div>';
+      return;
+    }
+    container.innerHTML = listings.slice(0, 4).map(function(l) {
+      var qtyBadge = l.supply_type === 'current'
+        ? '<span class="badge badge-success">' + formatKg(l.available_kg || 0) + ' available</span>'
+        : '<span class="badge badge-warn">Expected: ' + formatKg(l.estimated_yield_avg_kg || 0) + '</span>';
+      var priceBadge = l.price_per_kg_expected
+        ? '<span class="badge badge-muted">' + formatCurrency(l.price_per_kg_expected) + '/kg</span>'
+        : '';
+      return '<div class="crop-listing-card">' +
+        '<div class="crop-listing-icon">&#9651;</div>' +
+        '<div style="flex:1;">' +
+          '<div style="font-weight:700;font-size:0.9rem;">' + escapeHtml(l.crop_name || '') +
+            (l.crop_variety ? ' <span style="font-weight:400;color:var(--text-secondary);">(' + escapeHtml(l.crop_variety) + ')</span>' : '') +
+          '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Grade ' + escapeHtml(l.grade || '') + ' &middot; ' + escapeHtml(l.supply_type || '') + ' supply</div>' +
+          '<div style="display:flex;gap:8px;margin-top:4px;">' + qtyBadge + priceBadge + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;font-size:0.75rem;">' + statusBadge(l.status) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderPendingOrders(orders) {
+    var pendingAssignments = orders.filter(function(o) { return o.farmer_status === 'pending'; });
+    if (!pendingAssignments.length) {
+      el('pending-orders').innerHTML =
+        '<div class="section-empty">No pending assignments. Watch for new match notifications.</div>';
+      return;
+    }
+    el('pending-orders').innerHTML = pendingAssignments.map(function(a) {
+      return '<div style="padding:12px;background:var(--bg-elevated);border-radius:var(--radius-sm);margin-bottom:8px;border-left:3px solid var(--accent-warn);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+          '<div>' +
+            '<div style="font-weight:600;">' + escapeHtml(a.order_ref || '') + ' &middot; ' + escapeHtml(a.crop_name || '') + '</div>' +
+            '<div style="font-size:0.8rem;color:var(--text-secondary);">' +
+              'Qty: ' + formatKg(a.quantity_kg_assigned || 0) +
+              ' &middot; Buyer: ' + escapeHtml(a.customer_name || '') +
+              ' &middot; Deliver by: ' + formatDate(a.delivery_date_required) +
+            '</div>' +
+          '</div>' +
+          '<a href="/farmer/orders.html" class="btn btn-primary btn-sm">Respond</a>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderEarnings(earnings) {
+    el('earnings-summary').innerHTML =
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 0;">' +
+        '<div style="flex:1;min-width:160px;padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">' +
+          '<div style="font-size:1.5rem;font-weight:800;color:var(--primary);">' + formatCurrency(earnings.total_earned_inr || 0) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Total Earned</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:160px;padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">' +
+          '<div style="font-size:1.5rem;font-weight:800;color:var(--accent-warn);">' + formatCurrency(earnings.pending_inr || 0) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Pending Settlement</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:160px;padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">' +
+          '<div style="font-size:1.5rem;font-weight:800;">' + ((earnings.settlements && earnings.settlements.length) || 0) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Total Transactions</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function renderWeeklyDemand(weekly) {
+    var chartEl = el('weekly-demand-chart');
+    var summaryEl = el('weekly-demand-summary');
+
+    if (!weekly || !weekly.weekly_data) {
+      chartEl.innerHTML = '<div class="section-empty">No demand forecast data available for your district yet.</div>';
+      return;
+    }
+
+    var allCrops = Object.keys(weekly.weekly_data);
+    var topCrop = allCrops[0];
+    if (!topCrop) {
+      chartEl.innerHTML = '<div class="section-empty">No demand data available yet.</div>';
+      return;
+    }
+
+    var chartData = (weekly.weekly_data[topCrop] || []).slice(0, 7);
+    chartEl.innerHTML =
+      '<div style="font-size:0.75rem;font-weight:600;margin-bottom:8px;color:var(--text-secondary);">' +
+        'Top: ' + escapeHtml(topCrop) + ' &middot; Last 7 days in ' + escapeHtml(weekly.district || '') +
+      '</div>' +
+      '<div class="demand-bars" id="weekly-bars"></div>';
+
+    if (typeof renderDemandBars === 'function') {
+      renderDemandBars('weekly-bars', chartData.map(function(d) {
+        return { date: d.sale_date, quantity_kg: d.quantity_kg_sold, type: 'actual' };
+      }));
+    }
+
+    summaryEl.textContent = weekly.data_note || '';
+  }
+
+  window.loadDashboardData = function() {
+    var dashTimeout = setTimeout(function() {
+      renderStatsError();
+      renderSectionError('my-listings', 'Timed out loading listings.', window.loadDashboardData);
+      renderSectionError('pending-orders', 'Timed out loading orders.', window.loadDashboardData);
+      renderSectionError('earnings-summary', 'Timed out loading earnings.', window.loadDashboardData);
+    }, 12000);
+
+    Promise.allSettled([
+      API.get('/api/farmer/supply'),
+      API.get('/api/farmer/orders'),
+      API.get('/api/farmer/earnings'),
+      API.get('/api/farmer/forecast/weekly')
+    ]).then(function(results) {
+      clearTimeout(dashTimeout);
+
+      var listings = (results[0].value && results[0].value.listings) || [];
+      var orders = (results[1].value && results[1].value.assignments) || [];
+      var earnings = results[2].value || {};
+      var weekly = results[3].value || {};
+
+      renderStats(listings, orders, earnings);
+      renderListings(listings);
+      renderPendingOrders(orders);
+      renderEarnings(earnings);
+      renderWeeklyDemand(weekly);
+    }).catch(function() {
+      clearTimeout(dashTimeout);
+      renderStatsError();
+      renderSectionError('my-listings', 'Failed to load listings.', window.loadDashboardData);
+      renderSectionError('pending-orders', 'Failed to load orders.', window.loadDashboardData);
+      renderSectionError('earnings-summary', 'Failed to load earnings.', window.loadDashboardData);
+    });
+  };
+
+  function init() {
+    // Session check
+    var user = API.getUser();
+    if (!user || !user.role) {
+      window.location.href = '/login.html';
+      return;
+    }
+    if (user.role !== 'farmer') {
+      window.location.href = '/' + user.role + '/dashboard.html';
+      return;
+    }
+
+    el('farmer-welcome').textContent = user.email;
+
+    // Language switcher
+    var ls = el('nav-lang-switcher');
+    if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+
+    // Load profile first, then dashboard data
+    var profileTimeout = setTimeout(function() {
+      el('farmer-welcome').textContent = 'Welcome';
+      window.loadDashboardData();
+    }, 8000);
+
+    API.get('/api/farmer/profile', { silent: true })
+      .then(function(data) {
+        clearTimeout(profileTimeout);
+        if (!data || !data.profile) {
+          el('profile-alert').innerHTML =
+            '<div class="alert alert-warn">' +
+              '<span class="alert-icon">&#9888;</span>' +
+              '<span>Complete your farmer profile to start listing crops and receiving orders. ' +
+                '<a href="/farmer/profile.html">Complete Profile</a>' +
+              '</span>' +
+            '</div>';
+          el('profile-alert').classList.remove('hidden');
+          el('farmer-welcome').textContent = 'Please complete your profile';
+          el('stats-grid').innerHTML =
+            '<div style="grid-column:1/-1;" class="section-empty">' +
+              '<div style="font-size:2rem;margin-bottom:8px;">&#9651;</div>' +
+              '<strong>Profile Required</strong>' +
+              '<p style="margin-top:4px;">Complete your farmer profile to access the dashboard</p>' +
+              '<a href="/farmer/profile.html" class="btn btn-primary" style="margin-top:12px;">Set Up Profile</a>' +
+            '</div>';
+          el('my-listings').innerHTML = '<div class="section-empty"><a href="/farmer/profile.html">Set up profile first</a></div>';
+          el('pending-orders').innerHTML = '<div class="section-empty">Profile required to receive orders.</div>';
+          el('earnings-summary').innerHTML = '<div class="section-empty">Profile required to track earnings.</div>';
+          el('weekly-demand-chart').innerHTML = '<div class="section-empty">Set up your profile to see demand data for your district.</div>';
+          return;
+        }
+
+        var profile = data.profile;
+        var statusColors = { pending: 'badge-warn', approved: 'badge-success', rejected: 'badge-danger', info_required: 'badge-info' };
+        var statusColor = statusColors[profile.verification_status] || 'badge-muted';
+        el('verification-status-badge').innerHTML =
+          '<span class="badge ' + statusColor + '">' + (profile.verification_status || '').replace(/_/g, ' ') + '</span>';
+        el('farmer-info').textContent = (profile.full_name || '') + ' \u00b7 ' + (profile.district || '');
+        el('farmer-welcome').textContent = 'Welcome, ' + (profile.full_name || '');
+
+        if (profile.verification_status === 'pending') {
+          el('profile-alert').innerHTML =
+            '<div class="alert alert-info">' +
+              '<span class="alert-icon">&#9432;</span>' +
+              '<span>Your profile is pending admin verification. You can browse forecasts, but order participation requires approval.</span>' +
+            '</div>';
+          el('profile-alert').classList.remove('hidden');
+        }
+
+        window.loadDashboardData();
+      })
+      .catch(function(err) {
+        clearTimeout(profileTimeout);
+        if (err && (err.status === 401 || err.status === 403)) {
+          window.location.href = '/login.html';
+          return;
+        }
+        el('farmer-welcome').textContent = 'Welcome';
+        el('profile-alert').innerHTML =
+          '<div class="alert alert-warn">' +
+            '<span class="alert-icon">&#9888;</span>' +
+            '<span>Could not load your profile. <button class="retry-btn" onclick="init()">Retry</button></span>' +
+          '</div>';
+        el('profile-alert').classList.remove('hidden');
+        window.loadDashboardData();
+      });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

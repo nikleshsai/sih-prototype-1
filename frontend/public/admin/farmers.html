@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Farmer Management — Admin FarmConnect</title>
+  <meta name="description" content="Verify and manage registered farmers on the FarmConnect platform">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Admin Console</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <a href="/admin/dashboard.html" class="nav-item"><span class="nav-icon">&#9635;</span> Dashboard</a>
+      <div class="nav-section">Management</div>
+      <a href="/admin/farmers.html" class="nav-item active"><span class="nav-icon">&#9651;</span> Farmers</a>
+      <a href="/admin/customers.html" class="nav-item"><span class="nav-icon">&#9711;</span> Buyers</a>
+      <a href="/admin/orders.html" class="nav-item"><span class="nav-icon">&#9660;</span> Orders</a>
+      <div class="nav-section">Intelligence</div>
+      <a href="/admin/analytics.html" class="nav-item"><span class="nav-icon">&#9636;</span> Analytics</a>
+      <a href="/admin/logistics.html" class="nav-item"><span class="nav-icon">&#9654;</span> Logistics</a>
+      <div class="nav-section">Security</div>
+      <a href="/admin/audit.html" class="nav-item"><span class="nav-icon">&#128274;</span> Audit Log</a>
+    </nav>
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main-content">
+    <header class="top-header">
+      <div>
+        <span class="header-title">Farmer Management</span>
+        <span class="header-subtitle">Verify and manage registered farmers</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="status-filter" class="form-select" style="width:160px;" onchange="loadFarmers()">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="info_required">Info Required</option>
+        </select>
+        <span class="badge badge-danger">ADMIN</span>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Stats -->
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+        <div class="stat-card" style="--stat-color:#D29922">
+          <div class="stat-label">&#9888; Pending</div>
+          <div class="stat-value" id="cnt-pending">-</div>
+        </div>
+        <div class="stat-card" style="--stat-color:#2ECC71">
+          <div class="stat-label">&#10003; Approved</div>
+          <div class="stat-value" id="cnt-approved">-</div>
+        </div>
+        <div class="stat-card" style="--stat-color:#F85149">
+          <div class="stat-label">&#10005; Rejected</div>
+          <div class="stat-value" id="cnt-rejected">-</div>
+        </div>
+        <div class="stat-card" style="--stat-color:#388BFD">
+          <div class="stat-label">&#9432; Info Required</div>
+          <div class="stat-value" id="cnt-info">-</div>
+        </div>
+      </div>
+
+      <!-- Farmers Table -->
+      <div class="card">
+        <div id="farmers-table">
+          <div style="padding:40px;text-align:center;color:var(--text-muted);">
+            <div style="font-size:1.5rem;margin-bottom:8px;">&#9651;</div>
+            <p>Loading farmers...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Farmer Detail Modal -->
+<div class="modal-overlay" id="farmer-modal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <h3 class="modal-title">&#9651; Farmer Details</h3>
+      <button class="modal-close" onclick="closeModal()"></button>
+    </div>
+    <div id="modal-body"></div>
+    <div class="modal-footer" id="modal-actions"></div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  var allFarmers = [];
+
+  function el(id) { return document.getElementById(id); }
+
+  function renderError(elementId, message) {
+    el(elementId).innerHTML =
+      '<div style="padding:40px;text-align:center;">' +
+        '<div style="color:var(--accent-admin);font-size:0.9rem;">' + message + '</div>' +
+        '<button class="btn btn-outline btn-sm" style="margin-top:12px;" onclick="loadFarmers()">Retry</button>' +
+      '</div>';
+  }
+
+  window.loadFarmers = function() {
+    var status = el('status-filter').value;
+    var url = '/api/admin/farmers' + (status ? '?status=' + status : '');
+
+    el('farmers-table').innerHTML =
+      '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading farmers...</div>';
+
+    var timeout = setTimeout(function() {
+      renderError('farmers-table', 'Request timed out. Please check your connection.');
+    }, 10000);
+
+    API.get(url)
+      .then(function(data) {
+        clearTimeout(timeout);
+        if (!data) return;
+        allFarmers = data.farmers || [];
+        renderFarmers(allFarmers);
+
+        // Update counts
+        var counts = { pending: 0, approved: 0, rejected: 0, info_required: 0 };
+        allFarmers.forEach(function(f) {
+          if (counts[f.verification_status] !== undefined) counts[f.verification_status]++;
+        });
+        el('cnt-pending').textContent = counts.pending;
+        el('cnt-approved').textContent = counts.approved;
+        el('cnt-rejected').textContent = counts.rejected;
+        el('cnt-info').textContent = counts.info_required;
+      })
+      .catch(function(err) {
+        clearTimeout(timeout);
+        if (err && (err.status === 401 || err.status === 403)) {
+          window.location.href = '/login.html';
+          return;
+        }
+        renderError('farmers-table', 'Failed to load farmers (error ' + (err && err.status || 'network') + ').');
+      });
+  };
+
+  function renderFarmers(farmers) {
+    var container = el('farmers-table');
+    if (!farmers.length) {
+      container.innerHTML =
+        '<div class="empty-state">' +
+          '<div class="empty-icon">&#9651;</div>' +
+          '<h3>No farmers found</h3>' +
+          '<p>Try changing the status filter</p>' +
+        '</div>';
+      return;
+    }
+
+    var rows = farmers.map(function(f) {
+      return '<tr>' +
+        '<td>' +
+          '<strong>' + escapeHtml(f.full_name || '') + '</strong><br>' +
+          '<small style="color:var(--text-muted)">' + escapeHtml(f.email || '') + '</small><br>' +
+          '<small style="color:var(--text-muted)">' + escapeHtml(f.mobile || '') + '</small>' +
+        '</td>' +
+        '<td>' + escapeHtml(f.district || '') + ', ' + escapeHtml(f.state || '') + '</td>' +
+        '<td><span style="font-size:0.75rem">' + escapeHtml(f.gov_id_type || '') + '<br>' + escapeHtml(f.gov_id_number || '') + '</span></td>' +
+        '<td>' + statusBadge(f.verification_status) + '</td>' +
+        '<td>' + formatDate(f.created_at) + '</td>' +
+        '<td><button class="btn btn-outline btn-sm" onclick="viewFarmer(' + f.id + ')">Review</button></td>' +
+      '</tr>';
+    }).join('');
+
+    container.innerHTML =
+      '<div class="table-wrapper"><table>' +
+        '<thead><tr><th>Farmer</th><th>District</th><th>Gov ID</th><th>Status</th><th>Registered</th><th>Action</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>';
+  }
+
+  window.viewFarmer = function(id) {
+    el('modal-body').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading farmer details...</div>';
+    el('modal-actions').innerHTML = '';
+    el('farmer-modal').classList.add('show');
+
+    API.get('/api/admin/farmers/' + id)
+      .then(function(data) {
+        if (!data) return;
+        var f = data.farmer || {};
+        var lands = data.lands || [];
+        var listings = data.listings || [];
+
+        var landsHtml = lands.length
+          ? lands.map(function(l) {
+              return '<div style="font-size:0.8rem;padding:6px;background:var(--bg-elevated);border-radius:4px;margin-bottom:4px;">' +
+                (l.land_area_acres || 0) + ' acres &middot; ' + escapeHtml(l.irrigation_type || '') + ' &middot; ' + escapeHtml(l.soil_type || 'Unknown soil') +
+              '</div>';
+            }).join('')
+          : '<span style="color:var(--text-muted);font-size:0.8rem;">No lands registered</span>';
+
+        var listingsHtml = listings.length
+          ? listings.slice(0, 3).map(function(l) {
+              return '<div style="font-size:0.8rem;padding:6px;background:var(--bg-elevated);border-radius:4px;margin-bottom:4px;">' +
+                escapeHtml(l.crop_name || '') + ' &middot; ' + escapeHtml(l.supply_type || '') + ' &middot; ' +
+                formatKg(l.available_kg || l.estimated_yield_avg_kg || 0) + ' &middot; Grade ' + escapeHtml(l.grade || '') + ' &middot; ' + statusBadge(l.status) +
+              '</div>';
+            }).join('')
+          : '<span style="color:var(--text-muted);font-size:0.8rem;">No listings yet</span>';
+
+        var notesHtml = f.verification_notes
+          ? '<div class="alert alert-info"><span class="alert-icon">&#9432;</span><span>' + escapeHtml(f.verification_notes) + '</span></div>'
+          : '';
+
+        el('modal-body').innerHTML =
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
+            '<div><div class="form-label">Full Name</div><div>' + escapeHtml(f.full_name || '') + '</div></div>' +
+            '<div><div class="form-label">Mobile</div><div>' + escapeHtml(f.mobile || '') + '</div></div>' +
+            '<div><div class="form-label">Email</div><div>' + escapeHtml(f.email || '') + '</div></div>' +
+            '<div><div class="form-label">District</div><div>' + escapeHtml(f.district || '') + ', ' + escapeHtml(f.state || '') + '</div></div>' +
+            '<div><div class="form-label">Address</div><div>' + escapeHtml(f.address || '') + '</div></div>' +
+            '<div><div class="form-label">Pincode</div><div>' + escapeHtml(f.pincode || '') + '</div></div>' +
+            '<div><div class="form-label">Gov ID Type</div><div>' + escapeHtml(f.gov_id_type || '') + '</div></div>' +
+            '<div><div class="form-label">Gov ID Number</div><div>' + escapeHtml(f.gov_id_number || '') + '</div></div>' +
+            '<div><div class="form-label">Bank Account</div><div>' + (f.bank_account ? '****' + f.bank_account.slice(-4) : 'Not provided') + '</div></div>' +
+            '<div><div class="form-label">IFSC</div><div>' + escapeHtml(f.bank_ifsc || '') + '</div></div>' +
+          '</div>' +
+          '<div style="margin-bottom:12px;">' +
+            '<div class="form-label">Lands Registered (' + lands.length + ')</div>' +
+            landsHtml +
+          '</div>' +
+          '<div style="margin-bottom:12px;">' +
+            '<div class="form-label">Crop Listings (' + listings.length + ')</div>' +
+            listingsHtml +
+          '</div>' +
+          notesHtml +
+          '<div class="form-group">' +
+            '<label class="form-label">Verification Notes</label>' +
+            '<textarea id="verify-notes" class="form-textarea" placeholder="Add notes (required for rejection or info_required)"></textarea>' +
+          '</div>' +
+          '<input type="hidden" id="verify-farmer-id" value="' + f.id + '">';
+
+        el('modal-actions').innerHTML =
+          '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button>' +
+          '<button class="btn btn-warn btn-sm" onclick="verifyFarmer(\'info_required\')">Request Info</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="verifyFarmer(\'rejected\')">Reject</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="verifyFarmer(\'approved\')">&#10003; Approve</button>';
+      })
+      .catch(function(err) {
+        el('modal-body').innerHTML =
+          '<div style="padding:32px;text-align:center;color:var(--accent-admin);">Failed to load farmer details. Please try again.</div>';
+      });
+  };
+
+  window.verifyFarmer = function(status) {
+    var id = el('verify-farmer-id').value;
+    var notes = el('verify-notes').value;
+    if ((status === 'rejected' || status === 'info_required') && !notes.trim()) {
+      showToast('Please add notes explaining the reason', 'error');
+      return;
+    }
+    API.patch('/api/admin/farmers/' + id + '/verify', { status: status, notes: notes })
+      .then(function() {
+        showToast('Farmer ' + status + ' successfully', 'success');
+        closeModal();
+        loadFarmers();
+      })
+      .catch(function(err) {
+        showToast('Action failed: ' + (err && err.data && err.data.error || 'Please try again'), 'error');
+      });
+  };
+
+  window.closeModal = function() {
+    el('farmer-modal').classList.remove('show');
+  };
+
+  function init() {
+    var user = API.getUser();
+    if (!user || user.role !== 'admin') {
+      window.location.href = '/login.html';
+      return;
+    }
+    var ls = el('nav-lang-switcher');
+    if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+    loadFarmers();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

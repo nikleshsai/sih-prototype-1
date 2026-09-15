@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketplace — FarmConnect Buyer</title>
+  <meta name="description" content="Browse fresh produce from verified farmers across Tamil Nadu. Order bulk or retail with 50% advance protection.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    /* ══════════════════════════════════════
+       MARKETPLACE — Zepto/Amazon Hybrid
+    ══════════════════════════════════════ */
+    :root {
+      --mp-green: #1db954;
+      --mp-green-dark: #15803d;
+      --mp-amber: #f59e0b;
+      --mp-red: #ef4444;
+      --mp-blue: #3b82f6;
+      --mp-card-radius: 16px;
+      --mp-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      --mp-shadow-hover: 0 12px 40px rgba(0,0,0,0.32);
+    }
+
+    /* ── Hero Search Bar ── */
+    .mp-hero {
+      background: linear-gradient(135deg, #0d1117 0%, #0f1f0f 50%, #0d1117 100%);
+      border-bottom: 1px solid rgba(29,185,84,0.15);
+      padding: 24px 28px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .mp-hero-inner {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .mp-search-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .mp-search-box {
+      flex: 1;
+      position: relative;
+    }
+    .mp-search-box input {
+      width: 100%;
+      height: 48px;
+      background: rgba(255,255,255,0.07);
+      border: 1.5px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 0 48px 0 44px;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      transition: border-color 0.2s, background 0.2s;
+      outline: none;
+    }
+    .mp-search-box input:focus {
+      border-color: var(--mp-green);
+      background: rgba(29,185,84,0.06);
+    }
+    .mp-search-box input::placeholder { color: var(--text-muted); }
+    .mp-search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+    .mp-search-clear {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 1rem;
+      padding: 4px;
+      border-radius: 50%;
+      display: none;
+    }
+    .mp-search-clear.show { display: block; }
+
+    /* ── Category Pills ── */
+    .mp-categories {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .mp-categories::-webkit-scrollbar { display: none; }
+    .mp-cat-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .mp-cat-pill:hover {
+      background: rgba(29,185,84,0.12);
+      border-color: var(--mp-green);
+      color: var(--mp-green);
+    }
+    .mp-cat-pill.active {
+      background: var(--mp-green);
+      border-color: var(--mp-green);
+      color: #fff;
+    }
+    .mp-cat-pill .cat-emoji { font-size: 1rem; }
+
+    /* ── Layout ── */
+    .mp-body {
+      display: flex;
+      gap: 0;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0;
+    }
+
+    /* ── Filters Sidebar ── */
+    .mp-filters {
+      width: 230px;
+      flex-shrink: 0;
+      padding: 20px 16px;
+      border-right: 1px solid var(--border);
+      min-height: calc(100vh - 140px);
+    }
+    .mp-filter-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text-muted);
+      margin: 0 0 10px;
+    }
+    .mp-filter-group { margin-bottom: 20px; }
+    .mp-filter-group select,
+    .mp-filter-group input[type="number"] {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      outline: none;
+      font-family: 'Inter', sans-serif;
+      transition: border-color 0.2s;
+    }
+    .mp-filter-group select:focus,
+    .mp-filter-group input:focus { border-color: var(--mp-green); }
+    .mp-avail-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+    .mp-toggle-sw {
+      width: 36px;
+      height: 20px;
+      background: var(--border);
+      border-radius: 999px;
+      position: relative;
+      transition: background 0.2s;
+    }
+    .mp-toggle-sw.on { background: var(--mp-green); }
+    .mp-toggle-sw::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: left 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .mp-toggle-sw.on::after { left: 19px; }
+
+    /* ── Main grid area ── */
+    .mp-main {
+      flex: 1;
+      padding: 20px 20px 40px;
+      min-width: 0;
+    }
+
+    /* ── Sort + Results bar ── */
+    .mp-sort-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .mp-count {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+    .mp-count strong { color: var(--text-primary); }
+    .mp-sort-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .mp-sort-btn {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.18s;
+    }
+    .mp-sort-btn.active,
+    .mp-sort-btn:hover {
+      border-color: var(--mp-green);
+      color: var(--mp-green);
+      background: rgba(29,185,84,0.07);
+    }
+
+    /* ══════════════════════════════════════
+       PRODUCT CARDS
+    ══════════════════════════════════════ */
+    .mp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 16px;
+    }
+
+    .mp-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--mp-card-radius);
+      overflow: hidden;
+      transition: transform 0.22s cubic-bezier(.25,.46,.45,.94),
+                  box-shadow 0.22s,
+                  border-color 0.22s;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .mp-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--mp-shadow-hover);
+      border-color: rgba(29,185,84,0.4);
+    }
+
+    /* Photo area */
+    .mp-card-photo {
+      position: relative;
+      height: 150px;
+      background: linear-gradient(135deg, #1a2e1a, #0f1f0f);
+      overflow: hidden;
+    }
+    .mp-card-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s;
+    }
+    .mp-card:hover .mp-card-photo img { transform: scale(1.05); }
+    .mp-card-photo-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3.5rem;
+      background: linear-gradient(135deg, #1a2e1a, #0d2010);
+    }
+
+    /* Status badge on photo */
+    .mp-status-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      backdrop-filter: blur(8px);
+    }
+    .mp-status-available {
+      background: rgba(29,185,84,0.25);
+      border: 1px solid rgba(29,185,84,0.5);
+      color: #4ade80;
+    }
+    .mp-status-expected {
+      background: rgba(245,158,11,0.25);
+      border: 1px solid rgba(245,158,11,0.5);
+      color: #fbbf24;
+    }
+
+    /* Grade badge */
+    .mp-grade-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      backdrop-filter: blur(8px);
+    }
+    .grade-A { background: rgba(29,185,84,0.3); color: #4ade80; border: 1px solid rgba(29,185,84,0.4); }
+    .grade-B { background: rgba(59,130,246,0.3); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4); }
+    .grade-C { background: rgba(245,158,11,0.3); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4); }
+
+    /* Card body */
+    .mp-card-body {
+      padding: 12px 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mp-crop-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .mp-crop-variety {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .mp-farmer-info {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+    .mp-farmer-dot {
+      width: 5px; height: 5px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Price row */
+    .mp-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-top: auto;
+    }
+    .mp-price {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .mp-price-unit {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .mp-min-qty {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* Stock bar */
+    .mp-stock-bar-wrap {
+      margin-top: 2px;
+    }
+    .mp-stock-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .mp-stock-bar {
+      height: 3px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .mp-stock-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--mp-green), #52d68a);
+      transition: width 0.6s cubic-bezier(.25,.46,.45,.94);
+    }
+    .mp-stock-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .mp-stock-fill.medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+    /* CTA button */
+    .mp-order-btn {
+      margin: 0 14px 14px;
+      padding: 10px;
+      background: linear-gradient(135deg, #1db954, #15803d);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+      letter-spacing: .02em;
+    }
+    .mp-order-btn:hover {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(29,185,84,0.35);
+    }
+    .mp-order-btn:active { transform: translateY(0); }
+    .mp-order-btn.preorder {
+      background: linear-gradient(135deg, #d97706, #b45309);
+    }
+    .mp-order-btn.preorder:hover {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 4px 16px rgba(245,158,11,0.35);
+    }
+
+    /* Skeleton cards */
+    .mp-skeleton {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--mp-card-radius);
+      overflow: hidden;
+    }
+    .mp-skeleton-photo {
+      height: 150px;
+      background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(255,255,255,0.04) 50%, var(--bg-elevated) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    .mp-skeleton-body { padding: 12px 14px; }
+    .mp-skeleton-line {
+      height: 10px;
+      border-radius: 5px;
+      background: linear-gradient(90deg, var(--bg-elevated) 25%, rgba(255,255,255,0.04) 50%, var(--bg-elevated) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      margin-bottom: 8px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Empty state ── */
+    .mp-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .mp-empty-icon {
+      font-size: 4rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .mp-empty h3 {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    /* ══════════════════════════════════════
+       ORDER MODAL — Amazon/Zepto style
+    ══════════════════════════════════════ */
+    .mp-modal-photo {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .mp-modal-photo-placeholder {
+      width: 100%;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 5rem;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1a2e1a, #0d2010);
+      margin-bottom: 16px;
+    }
+    .mp-modal-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .mp-stat-cell {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .mp-stat-label {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .mp-stat-val {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* Order form inside modal */
+    .mp-order-section {
+      background: linear-gradient(135deg, rgba(29,185,84,0.06), rgba(21,128,61,0.04));
+      border: 1px solid rgba(29,185,84,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .mp-order-section h4 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--mp-green);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mp-pay-info {
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+    .mp-pay-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(29,185,84,0.15);
+      border: 1px solid rgba(29,185,84,0.3);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--mp-green);
+      margin-right: 4px;
+    }
+
+    /* Price estimator */
+    .mp-price-est {
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .mp-price-est-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      padding: 3px 0;
+    }
+    .mp-price-est-row.total {
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+      padding-top: 8px;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 0.88rem;
+    }
+    .mp-price-est-row.advance {
+      color: var(--mp-green);
+      font-weight: 600;
+    }
+
+    /* Mobile filter toggle */
+    @media (max-width: 768px) {
+      .mp-filters { display: none; }
+      .mp-filters.open { display: block; width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+      .mp-body { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Buyer Portal</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Shopping</div>
+      <a href="/customer/dashboard.html" class="nav-item">
+        <span class="nav-icon">&#9635;</span> Dashboard
+      </a>
+      <a href="/customer/marketplace.html" class="nav-item active">
+        <span class="nav-icon">&#9632;</span> Marketplace
+      </a>
+      <a href="/customer/orders.html" class="nav-item">
+        <span class="nav-icon">&#9660;</span> My Orders
+      </a>
+      <div class="nav-section">Account</div>
+      <a href="/customer/profile.html" class="nav-item">
+        <span class="nav-icon">&#9711;</span> My Profile
+      </a>
+    </nav>
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">&#x2192; Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <div class="main-content" style="padding:0; overflow-x:hidden;">
+
+    <!-- Hero Search -->
+    <div class="mp-hero">
+      <div class="mp-hero-inner">
+        <div class="mp-search-wrap">
+          <div class="mp-search-box">
+            <span class="mp-search-icon">🔍</span>
+            <input type="text" id="mp-search" placeholder="Search crops, varieties, farmers…" oninput="onSearch(this)">
+            <button class="mp-search-clear" id="mp-search-clear" onclick="clearSearch()">✕</button>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="showOrderFormDirect()" style="white-space:nowrap; height:48px; padding:0 18px; border-radius:12px;">
+            + Custom Order
+          </button>
+        </div>
+        <!-- Category pills -->
+        <div class="mp-categories" id="mp-categories">
+          <button class="mp-cat-pill active" onclick="setCat('', this)" data-cat="">
+            <span class="cat-emoji">🌾</span> All
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('tomato', this)" data-cat="tomato">
+            <span class="cat-emoji">🍅</span> Tomato
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('onion', this)" data-cat="onion">
+            <span class="cat-emoji">🧅</span> Onion
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('brinjal', this)" data-cat="brinjal">
+            <span class="cat-emoji">🍆</span> Brinjal
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('banana', this)" data-cat="banana">
+            <span class="cat-emoji">🍌</span> Banana
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('mango', this)" data-cat="mango">
+            <span class="cat-emoji">🥭</span> Mango
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('rice', this)" data-cat="rice">
+            <span class="cat-emoji">🌾</span> Rice
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('potato', this)" data-cat="potato">
+            <span class="cat-emoji">🥔</span> Potato
+          </button>
+          <button class="mp-cat-pill" onclick="setCat('chilli', this)" data-cat="chilli">
+            <span class="cat-emoji">🌶️</span> Chilli
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mp-body">
+      <!-- Filters Sidebar -->
+      <div class="mp-filters" id="mp-filters">
+        <div class="mp-filter-group">
+          <div class="mp-filter-title">📍 District</div>
+          <select id="filter-district" onchange="loadMarket()">
+            <option value="">All Districts</option>
+          </select>
+        </div>
+        <div class="mp-filter-group">
+          <div class="mp-filter-title">🏅 Grade</div>
+          <select id="filter-grade" onchange="loadMarket()">
+            <option value="">Any Grade</option>
+            <option value="A">Grade A — Premium</option>
+            <option value="B">Grade B</option>
+            <option value="C">Grade C</option>
+          </select>
+        </div>
+        <div class="mp-filter-group">
+          <div class="mp-filter-title">📦 Min Qty (kg)</div>
+          <input type="number" id="filter-minqty" placeholder="e.g. 100" oninput="debounceLoad()">
+        </div>
+        <div class="mp-filter-group">
+          <div class="mp-filter-title">💰 Max Price (₹/kg)</div>
+          <input type="number" id="filter-maxprice" placeholder="e.g. 40" oninput="debounceLoad()">
+        </div>
+        <div class="mp-filter-group">
+          <div class="mp-filter-title">⚡ Availability</div>
+          <label class="mp-avail-toggle" onclick="toggleAvail()">
+            <div class="mp-toggle-sw" id="avail-toggle"></div>
+            <span id="avail-label">Show all</span>
+          </label>
+        </div>
+        <button class="btn btn-ghost btn-sm btn-full" onclick="clearFilters()" style="margin-top:8px;">
+          ↺ Clear Filters
+        </button>
+      </div>
+
+      <!-- Main Grid -->
+      <div class="mp-main">
+        <!-- Sort + count bar -->
+        <div class="mp-sort-bar">
+          <div class="mp-count" id="mp-count">
+            <strong id="mp-count-num">—</strong> listings found
+          </div>
+          <div class="mp-sort-btns">
+            <button class="mp-sort-btn active" onclick="setSort('default', this)">Relevant</button>
+            <button class="mp-sort-btn" onclick="setSort('price_asc', this)">Price ↑</button>
+            <button class="mp-sort-btn" onclick="setSort('price_desc', this)">Price ↓</button>
+            <button class="mp-sort-btn" onclick="setSort('qty_desc', this)">Quantity ↓</button>
+          </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="mp-grid" id="mp-grid">
+          <!-- Skeletons on load -->
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+
+<!-- ═══════════════════════════════════
+     PRODUCT DETAIL MODAL
+════════════════════════════════════ -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="prod-title">Product Details</h3>
+      <button class="modal-close" onclick="closeProductModal()"></button>
+    </div>
+    <div id="prod-body" style="max-height:78vh; overflow-y:auto; padding:0 4px;"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     PLACE ORDER MODAL
+════════════════════════════════════ -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3 class="modal-title">🛒 Place Order</h3>
+      <button class="modal-close" onclick="closeOrderModal()"></button>
+    </div>
+    <div id="order-form-body" style="max-height:75vh; overflow-y:auto;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeOrderModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitOrder()" id="order-submit-btn">
+        Confirm & Proceed to Pay 50% →
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/data.js"></script>
+<script>
+
+/* ══════════════════════════════════════
+   State
+══════════════════════════════════════ */
+const DISTRICTS = ['Chennai','Coimbatore','Madurai','Tiruchirappalli','Salem',
+  'Tirunelveli','Vellore','Erode','Thoothukudi','Namakkal','Thanjavur','Dindigul'];
+
+let _allListings   = [];
+let _filteredList  = [];
+let _selectedProduct = null;
+let _sortMode      = 'default';
+let _availOnly     = false;
+let _searchTerm    = '';
+let _catFilter     = '';
+let _debounceTimer = null;
+
+/* Crop → emoji mapping */
+const CROP_EMOJI = {
+  tomato:'🍅', onion:'🧅', brinjal:'🍆', banana:'🍌', mango:'🥭',
+  rice:'🌾', potato:'🥔', chilli:'🌶️', carrot:'🥕', cabbage:'🥬',
+  cauliflower:'🥦', spinach:'🌿', lady_finger:'🫑', okra:'🫑',
+  cucumber:'🥒', bitter_gourd:'🫑', drumstick:'🌿', tamarind:'🌰',
+  coconut:'🥥', sugarcane:'🌿', groundnut:'🥜', turmeric:'🟡',
+};
+function getCropEmoji(name) {
+  if (!name) return '🌾';
+  const k = name.toLowerCase().replace(/\s+/g,'_');
+  for (const [key, emoji] of Object.entries(CROP_EMOJI)) {
+    if (k.includes(key)) return emoji;
+  }
+  return '🌿';
+}
+
+/* ══════════════════════════════════════
+   Init
+══════════════════════════════════════ */
+async function init() {
+  renderSkeletons();
+  await DATA.smartPopulateDistricts(document.getElementById('filter-district'), true);
+  await loadMarket();
+
+  // Check for ?new=1
+  if (new URLSearchParams(window.location.search).get('new') === '1') {
+    setTimeout(() => showOrderFormDirect(), 400);
+  }
+}
+
+/* ══════════════════════════════════════
+   Load + filter + sort
+══════════════════════════════════════ */
+async function loadMarket() {
+  renderSkeletons();
+  const district  = document.getElementById('filter-district').value;
+  const grade     = document.getElementById('filter-grade').value;
+  const minQty    = document.getElementById('filter-minqty').value;
+  const maxPrice  = document.getElementById('filter-maxprice').value;
+
+  let url = '/api/customer/marketplace?';
+  if (_catFilter)  url += `crop=${encodeURIComponent(_catFilter)}&`;
+  if (district)    url += `district=${encodeURIComponent(district)}&`;
+  if (grade)       url += `grade=${encodeURIComponent(grade)}&`;
+  if (minQty)      url += `min_qty=${minQty}&`;
+  if (maxPrice)    url += `max_price=${maxPrice}&`;
+
+  const data = await API.get(url, { silent: true });
+  _allListings = data?.listings || [];
+  applyFiltersAndRender();
+}
+
+function applyFiltersAndRender() {
+  let list = [..._allListings];
+
+  // Search
+  if (_searchTerm) {
+    const q = _searchTerm.toLowerCase();
+    list = list.filter(l =>
+      (l.crop_name || '').toLowerCase().includes(q) ||
+      (l.crop_variety || '').toLowerCase().includes(q) ||
+      (l.farmer_name || '').toLowerCase().includes(q) ||
+      (l.district || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Avail only
+  if (_availOnly) {
+    list = list.filter(l => l.supply_type === 'current' && l.available_kg > 0);
+  }
+
+  // Sort
+  if (_sortMode === 'price_asc')  list.sort((a,b) => (a.price_per_kg_expected||99) - (b.price_per_kg_expected||99));
+  if (_sortMode === 'price_desc') list.sort((a,b) => (b.price_per_kg_expected||0) - (a.price_per_kg_expected||0));
+  if (_sortMode === 'qty_desc')   list.sort((a,b) => (b.available_kg||0) - (a.available_kg||0));
+
+  _filteredList = list;
+  document.getElementById('mp-count-num').textContent = list.length;
+  renderCards(list);
+}
+
+/* ══════════════════════════════════════
+   Render helpers
+══════════════════════════════════════ */
+function renderSkeletons() {
+  const grid = document.getElementById('mp-grid');
+  grid.innerHTML = Array(8).fill(0).map(() => `
+    <div class="mp-skeleton">
+      <div class="mp-skeleton-photo"></div>
+      <div class="mp-skeleton-body">
+        <div class="mp-skeleton-line" style="width:70%"></div>
+        <div class="mp-skeleton-line" style="width:45%"></div>
+        <div class="mp-skeleton-line" style="width:55%; margin-top:8px;"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCards(listings) {
+  const grid = document.getElementById('mp-grid');
+  if (!listings.length) {
+    grid.innerHTML = `
+      <div class="mp-empty">
+        <span class="mp-empty-icon">🌾</span>
+        <h3>No produce found</h3>
+        <p>Try adjusting filters or check back as farmers add new listings.</p>
+        <button class="btn btn-outline" style="margin-top:12px;" onclick="clearFilters()">Clear Filters</button>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = listings.map(l => {
+    const isAvail   = l.supply_type === 'current' && l.available_kg > 0;
+    const emoji     = getCropEmoji(l.crop_name);
+    const maxStock  = 5000;
+    const stockPct  = isAvail ? Math.min(100, Math.round((l.available_kg / maxStock) * 100)) : 0;
+    const stockClass = stockPct < 20 ? 'low' : stockPct < 50 ? 'medium' : '';
+    const gradeClass = `grade-${l.grade || 'B'}`;
+    const hasPhoto  = l.photos && l.photos.length;
+
+    return `
+    <div class="mp-card" onclick="viewProduct(${JSON.stringify(l).replace(/"/g,'&quot;')})">
+      <div class="mp-card-photo">
+        ${hasPhoto
+          ? `<img src="${escapeHtml(l.photos[0].photo_path)}" alt="${escapeHtml(l.crop_name)}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=mp-card-photo-placeholder>${emoji}</div>'">`
+          : `<div class="mp-card-photo-placeholder">${emoji}</div>`
+        }
+        <span class="mp-status-badge ${isAvail ? 'mp-status-available' : 'mp-status-expected'}">
+          ${isAvail ? '● Available' : '◐ Pre-order'}
+        </span>
+        <span class="mp-grade-badge ${gradeClass}">
+          ${escapeHtml(l.grade || 'B')}
+        </span>
+      </div>
+      <div class="mp-card-body">
+        <div class="mp-crop-name">${escapeHtml(l.crop_name)}</div>
+        ${l.crop_variety ? `<div class="mp-crop-variety">${escapeHtml(l.crop_variety)}</div>` : ''}
+        <div class="mp-farmer-info">
+          👨‍🌾 ${escapeHtml(l.farmer_name)}
+          <span class="mp-farmer-dot"></span>
+          ${escapeHtml(l.district)}
+        </div>
+        <div class="mp-price-row">
+          ${l.price_per_kg_expected
+            ? `<span class="mp-price">₹${parseFloat(l.price_per_kg_expected).toFixed(0)}</span>
+               <span class="mp-price-unit">/kg</span>`
+            : `<span class="mp-price-unit" style="color:var(--mp-amber);">Price TBD</span>`
+          }
+          <span class="mp-min-qty">Min: ${formatKg(l.minimum_order_kg)}</span>
+        </div>
+        ${isAvail ? `
+        <div class="mp-stock-bar-wrap">
+          <div class="mp-stock-label">
+            <span>Stock</span>
+            <span style="color:${stockPct < 20 ? '#ef4444' : 'inherit'}">${formatKg(l.available_kg)}</span>
+          </div>
+          <div class="mp-stock-bar">
+            <div class="mp-stock-fill ${stockClass}" style="width:${stockPct}%"></div>
+          </div>
+        </div>` : `
+        <div style="font-size:0.7rem;color:var(--mp-amber);">
+          🌱 Est. harvest: ${l.expected_harvest_date ? formatDate(l.expected_harvest_date) : 'TBD'}
+        </div>`}
+      </div>
+      <button class="mp-order-btn ${isAvail ? '' : 'preorder'}"
+        onclick="event.stopPropagation(); showOrderForm(${JSON.stringify(l).replace(/"/g,'&quot;')})">
+        ${isAvail ? '🛒 Quick Order' : '📋 Pre-order'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════
+   Product detail modal
+══════════════════════════════════════ */
+function viewProduct(l) {
+  _selectedProduct = l;
+  const isAvail = l.supply_type === 'current' && l.available_kg > 0;
+  const emoji   = getCropEmoji(l.crop_name);
+  const hasPhoto = l.photos && l.photos.length;
+
+  document.getElementById('prod-title').textContent =
+    `${emoji} ${l.crop_name}${l.crop_variety ? ' · ' + l.crop_variety : ''}`;
+
+  document.getElementById('prod-body').innerHTML = `
+    ${hasPhoto
+      ? `<img src="${escapeHtml(l.photos[0].photo_path)}" class="mp-modal-photo" onerror="this.outerHTML='<div class=mp-modal-photo-placeholder>${emoji}</div>'">`
+      : `<div class="mp-modal-photo-placeholder">${emoji}</div>`
+    }
+
+    <div class="mp-modal-stats">
+      <div class="mp-stat-cell">
+        <div class="mp-stat-label">Farmer</div>
+        <div class="mp-stat-val">👨‍🌾 ${escapeHtml(l.farmer_name)}</div>
+      </div>
+      <div class="mp-stat-cell">
+        <div class="mp-stat-label">Location</div>
+        <div class="mp-stat-val">📍 ${escapeHtml(l.district)}${l.village ? ', ' + escapeHtml(l.village) : ''}</div>
+      </div>
+      <div class="mp-stat-cell">
+        <div class="mp-stat-label">Grade</div>
+        <div class="mp-stat-val"><span class="mp-grade-badge ${`grade-${l.grade||'B'}`}" style="position:static;width:auto;height:auto;border-radius:6px;padding:2px 8px;">Grade ${escapeHtml(l.grade||'B')}</span></div>
+      </div>
+      <div class="mp-stat-cell">
+        <div class="mp-stat-label">${isAvail ? 'Available Stock' : 'Expected Yield'}</div>
+        <div class="mp-stat-val" style="color:${isAvail ? 'var(--mp-green)' : 'var(--mp-amber)'}">
+          ${isAvail
+            ? formatKg(l.available_kg)
+            : `${formatKg(l.estimated_yield_min_kg)} – ${formatKg(l.estimated_yield_max_kg)}`}
+        </div>
+      </div>
+      ${l.price_per_kg_expected ? `
+      <div class="mp-stat-cell">
+        <div class="mp-stat-label">Price</div>
+        <div class="mp-stat-val" style="color:var(--text-primary)">₹${parseFloat(l.price_per_kg_expected).toFixed(2)}/kg</div>
+      </div>` : ''}
+      <div class="mp-stat-cell">
+        <div class="mp-stat-label">Min. Order</div>
+        <div class="mp-stat-val">${formatKg(l.minimum_order_kg)}</div>
+      </div>
+      ${l.expected_harvest_date ? `
+      <div class="mp-stat-cell" style="grid-column:1/-1">
+        <div class="mp-stat-label">Harvest Date</div>
+        <div class="mp-stat-val">🌱 ${formatDate(l.expected_harvest_date)}</div>
+      </div>` : ''}
+    </div>
+
+    ${l.notes ? `<div style="background:var(--bg-elevated);border-radius:10px;padding:10px 12px;font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;"><strong>Notes:</strong> ${escapeHtml(l.notes)}</div>` : ''}
+
+    <div class="alert alert-info" style="margin-bottom:12px;">
+      <span class="alert-icon">ℹ</span>
+      <span>Your order may be fulfilled by multiple farmers. Full traceability provided — you'll see exactly which farm each kg came from.</span>
+    </div>
+
+    <div style="display:flex;gap:10px;padding-bottom:4px;">
+      <button class="btn btn-ghost" onclick="closeProductModal()" style="flex:1;">Close</button>
+      <button class="btn btn-primary" onclick="showOrderForm()" style="flex:2;">
+        🛒 ${isAvail ? 'Place Order' : 'Pre-order'} →
+      </button>
+    </div>
+  `;
+  document.getElementById('product-modal').classList.add('show');
+}
+
+function closeProductModal() {
+  document.getElementById('product-modal').classList.remove('show');
+}
+
+/* ══════════════════════════════════════
+   Order form modal
+══════════════════════════════════════ */
+function showOrderForm(prefill) {
+  const p = prefill || _selectedProduct;
+  closeProductModal();
+  const delivDate = new Date();
+  delivDate.setDate(delivDate.getDate() + 7);
+  const basePrice = p?.price_per_kg_expected || 30;
+
+  document.getElementById('order-form-body').innerHTML = `
+    <div style="padding:0 4px;">
+      <!-- Product summary chip -->
+      ${p ? `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--bg-elevated);border-radius:10px;padding:10px 12px;margin-bottom:16px;">
+        <span style="font-size:2rem;">${getCropEmoji(p.crop_name)}</span>
+        <div>
+          <div style="font-weight:700;">${escapeHtml(p.crop_name)}${p.crop_variety ? ' — ' + escapeHtml(p.crop_variety) : ''}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">👨‍🌾 ${escapeHtml(p.farmer_name || '')} · 📍 ${escapeHtml(p.district || '')}</div>
+        </div>
+        ${p.price_per_kg_expected ? `<div style="margin-left:auto;font-weight:800;font-size:1.05rem;">₹${parseFloat(p.price_per_kg_expected).toFixed(0)}<small style="font-size:0.7rem;font-weight:400;">/kg</small></div>` : ''}
+      </div>` : ''}
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Crop <span class="required">*</span></label>
+          <input id="o-crop" class="form-input" value="${p ? escapeHtml(p.crop_name) : ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Variety</label>
+          <input id="o-variety" class="form-input" value="${p ? escapeHtml(p.crop_variety || '') : ''}">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Order Type <span class="required">*</span></label>
+          <select id="o-type" class="form-select">
+            <option value="bulk">Bulk (500kg+)</option>
+            <option value="retail">Retail</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grade</label>
+          <select id="o-grade" class="form-select">
+            <option value="A">Grade A — Premium</option>
+            <option value="B">Grade B</option>
+            <option value="C">Grade C</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Quantity (kg) <span class="required">*</span></label>
+          <input id="o-qty" type="number" class="form-input" placeholder="e.g. 500" min="1" oninput="updatePriceEst()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Price (₹/kg)</label>
+          <input id="o-price" type="number" class="form-input" value="${basePrice}" oninput="updatePriceEst()">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Delivery Address <span class="required">*</span></label>
+        <textarea id="o-location" class="form-textarea" placeholder="Full delivery address, landmark…" rows="2"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Delivery District <span class="required">*</span></label>
+          <select id="o-district" class="form-select">
+            ${DISTRICTS.map(d => `<option>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Required By <span class="required">*</span></label>
+          <input id="o-date" type="date" class="form-input" value="${delivDate.toISOString().split('T')[0]}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Special Requirements</label>
+        <textarea id="o-notes" class="form-textarea" placeholder="Grade specs, packaging, sorting…" rows="2"></textarea>
+      </div>
+
+      <!-- Price Estimator -->
+      <div class="mp-price-est" id="price-est" style="display:none;">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">💰 Price Estimate</div>
+        <div class="mp-price-est-row">
+          <span>Subtotal (<span id="est-qty">—</span> kg × ₹<span id="est-rate">—</span>)</span>
+          <span id="est-subtotal">—</span>
+        </div>
+        <div class="mp-price-est-row total">
+          <span>Total (estimated)</span>
+          <span id="est-total">—</span>
+        </div>
+        <div class="mp-price-est-row advance" style="margin-top:4px;">
+          <span>⚡ 50% Advance (pay now via Razorpay)</span>
+          <span id="est-advance">—</span>
+        </div>
+        <div class="mp-price-est-row" style="color:var(--text-muted);">
+          <span>🚚 50% Balance (pay on delivery)</span>
+          <span id="est-balance">—</span>
+        </div>
+      </div>
+
+      <!-- Payment info -->
+      <div class="mp-pay-info">
+        <strong>🔒 Secure 50/50 Payment Protection</strong><br>
+        <span class="mp-pay-badge">50% Now</span> Advance via Razorpay (UPI / Card / Net Banking)<br>
+        <span class="mp-pay-badge" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.3);color:var(--mp-amber);">50% On Delivery</span> Balance paid after you receive & verify
+      </div>
+    </div>
+  `;
+  document.getElementById('order-modal').classList.add('show');
+}
+
+function showOrderFormDirect() {
+  _selectedProduct = null;
+  showOrderForm(null);
+}
+
+function updatePriceEst() {
+  const qty   = parseFloat(document.getElementById('o-qty')?.value);
+  const rate  = parseFloat(document.getElementById('o-price')?.value);
+  const box   = document.getElementById('price-est');
+  if (!box) return;
+  if (isNaN(qty) || isNaN(rate) || qty <= 0 || rate <= 0) {
+    box.style.display = 'none';
+    return;
+  }
+  const total    = qty * rate;
+  const advance  = Math.round(total * 0.5);
+  const balance  = total - advance;
+  box.style.display = 'block';
+  document.getElementById('est-qty').textContent      = qty.toLocaleString('en-IN');
+  document.getElementById('est-rate').textContent     = rate.toFixed(0);
+  document.getElementById('est-subtotal').textContent = formatCurrency(total);
+  document.getElementById('est-total').textContent    = formatCurrency(total);
+  document.getElementById('est-advance').textContent  = formatCurrency(advance);
+  document.getElementById('est-balance').textContent  = formatCurrency(balance);
+}
+
+function closeOrderModal() {
+  document.getElementById('order-modal').classList.remove('show');
+}
+
+/* ══════════════════════════════════════
+   Submit order
+══════════════════════════════════════ */
+async function submitOrder() {
+  const crop     = document.getElementById('o-crop').value.trim();
+  const qty      = document.getElementById('o-qty').value;
+  const location = document.getElementById('o-location').value.trim();
+  const district = document.getElementById('o-district').value;
+  const date     = document.getElementById('o-date').value;
+  if (!crop || !qty || !location || !date) {
+    showToast('Please fill in all required fields', 'warn');
+    return;
+  }
+  const btn = document.getElementById('order-submit-btn');
+  setLoading(btn, true);
+  try {
+    const data = await API.post('/api/customer/orders', {
+      crop_name:               crop,
+      crop_variety:            document.getElementById('o-variety').value || null,
+      order_type:              document.getElementById('o-type').value,
+      grade_required:          document.getElementById('o-grade').value,
+      quantity_kg_requested:   parseFloat(qty),
+      price_per_kg_max:        document.getElementById('o-price').value || null,
+      delivery_location:       location,
+      delivery_district:       district,
+      delivery_date_required:  date,
+      special_requirements:    document.getElementById('o-notes').value || null,
+    });
+    showToast(`✅ Order placed! Ref: ${data.order_ref} — Proceed to payment`, 'success');
+    closeOrderModal();
+    setTimeout(() => window.location.href = '/customer/orders.html', 1800);
+  } catch (e) {
+    console.error('[Page Error]', e);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+/* ══════════════════════════════════════
+   Filter / sort controls
+══════════════════════════════════════ */
+function setCat(cat, el) {
+  _catFilter = cat;
+  document.querySelectorAll('.mp-cat-pill').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  loadMarket();
+}
+
+function setSort(mode, el) {
+  _sortMode = mode;
+  document.querySelectorAll('.mp-sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  applyFiltersAndRender();
+}
+
+function toggleAvail() {
+  _availOnly = !_availOnly;
+  const sw  = document.getElementById('avail-toggle');
+  const lbl = document.getElementById('avail-label');
+  sw.classList.toggle('on', _availOnly);
+  lbl.textContent = _availOnly ? 'Available only' : 'Show all';
+  applyFiltersAndRender();
+}
+
+function onSearch(input) {
+  _searchTerm = input.value.trim();
+  document.getElementById('mp-search-clear').classList.toggle('show', !!_searchTerm);
+  debounceLoad();
+}
+
+function clearSearch() {
+  document.getElementById('mp-search').value = '';
+  _searchTerm = '';
+  document.getElementById('mp-search-clear').classList.remove('show');
+  applyFiltersAndRender();
+}
+
+function clearFilters() {
+  document.getElementById('filter-district').value = '';
+  document.getElementById('filter-grade').value    = '';
+  document.getElementById('filter-minqty').value   = '';
+  document.getElementById('filter-maxprice').value = '';
+  _catFilter  = '';
+  _availOnly  = false;
+  _searchTerm = '';
+  document.getElementById('mp-search').value = '';
+  document.getElementById('mp-search-clear').classList.remove('show');
+  document.getElementById('avail-toggle').classList.remove('on');
+  document.getElementById('avail-label').textContent = 'Show all';
+  document.querySelectorAll('.mp-cat-pill').forEach((b,i) => b.classList.toggle('active', i===0));
+  loadMarket();
+}
+
+function debounceLoad() {
+  clearTimeout(_debounceTimer);
+  _debounceTimer = setTimeout(applyFiltersAndRender, 350);
+}
+
+/* ── Boot ── */
+init();
+</script>
+
+<script>
+  // I18N
+  const ls = document.getElementById('nav-lang-switcher');
+  if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+</script>
+</body>
+</html>

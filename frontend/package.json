@@ -1,0 +1,12 @@
+{
+  "name": "farm-to-buyer-frontend",
+  "version": "1.0.0",
+  "description": "Smart Farm-to-Buyer Platform — Frontend (Vanilla HTML/CSS/JS)",
+  "scripts": {
+    "dev": "npx serve public -p 3001 --no-clipboard",
+    "start": "npx serve public -p 3001"
+  },
+  "devDependencies": {
+    "serve": "^14.2.3"
+  }
+}

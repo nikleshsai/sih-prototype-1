@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Track and manage all your crop orders on FarmConnect." />
+  <title>My Orders &amp; Tracking — FarmConnect Buyer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    /* ════════════════════════════════════════
+       ORDERS PAGE — Meesho / Amazon Hybrid
+    ════════════════════════════════════════ */
+    :root {
+      --trk-green:  #22c55e;
+      --trk-amber:  #f59e0b;
+      --trk-blue:   #3b82f6;
+      --trk-red:    #ef4444;
+      --trk-purple: #a855f7;
+    }
+
+    /* ── Filter tabs ── */
+    .filter-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .ftab {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 16px;
+      border-radius: 999px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.18s;
+    }
+    .ftab:hover { border-color: var(--trk-green); color: var(--trk-green); }
+    .ftab.active {
+      background: var(--trk-green);
+      border-color: var(--trk-green);
+      color: #fff;
+    }
+    .ftab-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+
+    /* ── Order Cards (Meesho style) ── */
+    .order-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      transition: box-shadow 0.2s, border-color 0.2s;
+      cursor: pointer;
+    }
+    .order-card:hover {
+      box-shadow: 0 6px 28px rgba(0,0,0,0.2);
+      border-color: rgba(34,197,94,0.3);
+    }
+    .order-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .order-card-emoji {
+      font-size: 2.2rem;
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+    }
+    .order-card-info { flex: 1; min-width: 0; }
+    .order-card-crop {
+      font-size: 0.98rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .order-card-ref {
+      font-family: monospace;
+      font-size: 0.7rem;
+      color: var(--trk-green);
+      font-weight: 700;
+      background: rgba(34,197,94,0.1);
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+    .order-card-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .order-card-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .order-card-amount {
+      font-size: 1rem;
+      font-weight: 800;
+    }
+    .order-card-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      margin-top: 4px;
+    }
+    .status-pending       { background:rgba(212,153,34,0.15); color:#D99922; }
+    .status-confirmed     { background:rgba(59,130,246,0.15); color:#3b82f6; }
+    .status-in_fulfillment{ background:rgba(168,85,247,0.15); color:#a855f7; }
+    .status-in_transit    { background:rgba(245,158,11,0.15); color:#f59e0b; }
+    .status-delivered     { background:rgba(34,197,94,0.15);  color:#22c55e; }
+    .status-cancelled     { background:rgba(239,68,68,0.15);  color:#ef4444; }
+
+    /* Mini tracker bar inside order card */
+    .order-card-track {
+      padding: 10px 18px 14px;
+    }
+    .mini-track {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .mini-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex: 1;
+    }
+    .mini-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      top: 9px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      z-index: 0;
+    }
+    .mini-step.done:not(:last-child)::after {
+      background: var(--trk-green);
+    }
+    .mini-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border);
+      z-index: 1;
+      position: relative;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+    .mini-step.done .mini-dot {
+      background: var(--trk-green);
+      border-color: var(--trk-green);
+    }
+    .mini-step.active .mini-dot {
+      background: var(--trk-amber);
+      border-color: var(--trk-amber);
+      box-shadow: 0 0 0 4px rgba(245,158,11,0.25);
+      animation: pulse-dot 1.5s infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { box-shadow: 0 0 0 4px rgba(245,158,11,0.25); }
+      50%      { box-shadow: 0 0 0 8px rgba(245,158,11,0.1); }
+    }
+    .mini-step-label {
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .mini-step.done .mini-step-label  { color: var(--trk-green); }
+    .mini-step.active .mini-step-label { color: var(--trk-amber); font-weight: 700; }
+
+    /* ════════════════════════════════════════
+       ORDER DETAIL MODAL
+    ════════════════════════════════════════ */
+
+    /* ── Meesho-style full tracker ── */
+    .trk-header {
+      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(15,31,15,0.6));
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .trk-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .trk-big-status {
+      font-size: 1.1rem;
+      font-weight: 800;
+    }
+    .trk-eta-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #60a5fa;
+    }
+
+    /* Full-step timeline */
+    .trk-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .trk-step {
+      display: flex;
+      gap: 14px;
+      position: relative;
+    }
+    .trk-step:not(:last-child) .trk-step-left::after {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 26px;
+      bottom: -4px;
+      width: 2px;
+      background: var(--border);
+    }
+    .trk-step.done:not(:last-child) .trk-step-left::after {
+      background: var(--trk-green);
+    }
+    .trk-step-left {
+      position: relative;
+      width: 24px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .trk-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .trk-step.done .trk-circle {
+      background: var(--trk-green);
+      border-color: var(--trk-green);
+      color: #fff;
+    }
+    .trk-step.active .trk-circle {
+      background: var(--trk-amber);
+      border-color: var(--trk-amber);
+      color: #fff;
+      box-shadow: 0 0 0 5px rgba(245,158,11,0.2);
+      animation: pulse-dot 1.5s infinite;
+    }
+    .trk-step-right {
+      flex: 1;
+      padding-bottom: 20px;
+    }
+    .trk-step-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+    .trk-step.done .trk-step-title { color: var(--trk-green); }
+    .trk-step.active .trk-step-title { color: var(--trk-amber); }
+    .trk-step-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .trk-step-time {
+      font-size: 0.68rem;
+      color: var(--trk-green);
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    /* Driver card */
+    .trk-driver-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .trk-driver-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--trk-green), #15803d);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .trk-driver-info { flex: 1; min-width: 120px; }
+    .trk-driver-name { font-weight: 700; font-size: 0.85rem; }
+    .trk-driver-sub  { font-size: 0.72rem; color: var(--text-muted); }
+    .trk-call-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 8px;
+      color: var(--trk-green);
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.18s;
+    }
+    .trk-call-btn:hover {
+      background: rgba(34,197,94,0.2);
+    }
+
+    /* Route stops */
+    .route-stop {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+    }
+    .route-stop:last-child { border-bottom: none; }
+    .route-stop-icon { font-size: 1.1rem; margin-top: 1px; flex-shrink: 0; }
+
+    /* ════════════════════════════════════════
+       RAZORPAY / PAYMENT SECTION
+    ════════════════════════════════════════ */
+    .pay-section {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .pay-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+    }
+    .pay-phases {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .pay-phase-cell {
+      padding: 14px 16px;
+      position: relative;
+    }
+    .pay-phase-cell:first-child {
+      border-right: 1px solid var(--border);
+    }
+    .pay-phase-cell.paid {
+      background: rgba(34,197,94,0.04);
+    }
+    .pay-phase-label {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .pay-phase-amount {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--text-primary);
+    }
+    .pay-phase-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      margin-top: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+    .ps-paid    { background:rgba(34,197,94,0.15);  color:#22c55e; }
+    .ps-pending { background:rgba(245,158,11,0.15); color:#f59e0b; }
+    .ps-after   { background:rgba(148,163,184,0.1); color:var(--text-muted); }
+
+    /* Amazon-style payment CTA */
+    .pay-cta-box {
+      margin: 0 16px 16px;
+      background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(37,99,235,0.04));
+      border: 1.5px solid rgba(59,130,246,0.2);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .pay-cta-title {
+      font-weight: 800;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pay-breakdown {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .pay-breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    .pay-breakdown-row.total {
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+      padding-top: 6px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-size: 0.82rem;
+    }
+    .rzp-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+      letter-spacing: .01em;
+    }
+    .rzp-btn:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(37,99,235,0.4);
+    }
+    .rzp-btn.delivery {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+    }
+    .rzp-btn.delivery:hover {
+      background: linear-gradient(135deg, #15803d, #166534);
+      box-shadow: 0 6px 20px rgba(22,163,74,0.4);
+    }
+    .rzp-sub {
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .rzp-icons {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      justify-content: center;
+    }
+    .rzp-icon {
+      padding: 3px 7px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+    }
+
+    /* Balance due banner (green) */
+    .pay-balance-box {
+      margin: 0 16px 16px;
+      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(21,128,61,0.05));
+      border: 1.5px solid rgba(34,197,94,0.25);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .pay-balance-title {
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--trk-green);
+      margin-bottom: 6px;
+    }
+
+    /* ── Section label ── */
+    .sec-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--text-muted);
+      margin: 20px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sec-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Traceability ── */
+    .trace-item {
+      display: flex;
+      gap: 12px;
+      padding: 10px 12px;
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+    }
+    .trace-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 99px;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+    .trace-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--trk-green), #52d68a);
+      border-radius: 99px;
+    }
+
+    /* Demo banner */
+    .demo-banner {
+      background: linear-gradient(135deg, rgba(34,197,94,0.06), rgba(59,130,246,0.06));
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Buyer Portal</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Shopping</div>
+      <a href="/customer/dashboard.html" class="nav-item">
+        <span class="nav-icon">&#9635;</span> Dashboard
+      </a>
+      <a href="/customer/marketplace.html" class="nav-item">
+        <span class="nav-icon">&#9632;</span> Marketplace
+      </a>
+      <a href="/customer/orders.html" class="nav-item active">
+        <span class="nav-icon">&#9660;</span> My Orders
+      </a>
+      <div class="nav-section">Account</div>
+      <a href="/customer/profile.html" class="nav-item">
+        <span class="nav-icon">&#9711;</span> My Profile
+      </a>
+    </nav>
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">&#x2192; Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div class="main-content">
+    <header class="top-header">
+      <div>
+        <span class="header-title">📦 My Orders</span>
+        <span class="header-subtitle">Track and manage all your orders</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span id="order-count" style="font-size:0.78rem; color:var(--text-muted);"></span>
+        <a href="/customer/marketplace.html" class="btn btn-primary btn-sm">+ New Order</a>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Demo banner -->
+      <div class="demo-banner" id="demo-banner" style="display:none;">
+        <span style="font-size:1.4rem;">🌱</span>
+        <div><strong>Demo Mode:</strong> Showing sample orders to explore the tracking UI. This represents a real Farm-to-Buyer flow with Meesho-style live tracking.</div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div class="filter-tabs" id="filter-tabs">
+        <button class="ftab active" onclick="filterOrders('all')">
+          <span class="ftab-dot" style="background:#94a3b8;"></span> All
+        </button>
+        <button class="ftab" onclick="filterOrders('pending')">
+          <span class="ftab-dot" style="background:#D99922;"></span> Pending
+        </button>
+        <button class="ftab" onclick="filterOrders('confirmed')">
+          <span class="ftab-dot" style="background:#3b82f6;"></span> Confirmed
+        </button>
+        <button class="ftab" onclick="filterOrders('in_transit')">
+          <span class="ftab-dot" style="background:#f59e0b;"></span> In Transit
+        </button>
+        <button class="ftab" onclick="filterOrders('delivered')">
+          <span class="ftab-dot" style="background:#22c55e;"></span> Delivered
+        </button>
+      </div>
+
+      <!-- Orders list -->
+      <div id="orders-list">
+        <div style="padding:40px; text-align:center; color:var(--text-muted);">
+          <p>Loading orders…</p>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+
+<!-- ═══════════════════════════════════════════
+     ORDER DETAIL MODAL
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="order-modal">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Order Details</h3>
+      <button class="modal-close" onclick="closeModal()"></button>
+    </div>
+    <div id="modal-body" style="max-height:80vh; overflow-y:auto; padding:0 4px;"></div>
+    <div class="modal-footer" id="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Razorpay SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+
+<script>
+/* ════════════════════════════════════════════════
+   CROP EMOJI HELPER
+════════════════════════════════════════════════ */
+const CROP_EMOJI = {
+  tomato:'🍅',onion:'🧅',brinjal:'🍆',banana:'🍌',mango:'🥭',
+  rice:'🌾',potato:'🥔',chilli:'🌶️',carrot:'🥕',cabbage:'🥬',
+};
+function getCropEmoji(name) {
+  if (!name) return '🌿';
+  const k = name.toLowerCase();
+  for (const [key, emoji] of Object.entries(CROP_EMOJI)) {
+    if (k.includes(key)) return emoji;
+  }
+  return '🌾';
+}
+
+/* ════════════════════════════════════════════════
+   DEMO DATA
+════════════════════════════════════════════════ */
+const DEMO_ORDERS = [
+  {
+    id: 1001,
+    order_ref: 'ORD-DEMO-001',
+    crop_name: 'Tomato', crop_variety: 'Hybrid',
+    quantity_kg_requested: 500, quantity_kg_fulfilled: 500,
+    delivery_district: 'Chennai',
+    delivery_date_required: new Date(Date.now() + 3 * 86400000).toISOString(),
+    price_per_kg_max: 28, status: 'in_transit',
+    payment_status: 'advance_paid', farmer_count: 2, _demo: true,
+  },
+  {
+    id: 1002,
+    order_ref: 'ORD-DEMO-002',
+    crop_name: 'Onion', crop_variety: 'Red',
+    quantity_kg_requested: 800, quantity_kg_fulfilled: 800,
+    delivery_district: 'Chennai',
+    delivery_date_required: new Date(Date.now() + 8 * 86400000).toISOString(),
+    price_per_kg_max: 22, status: 'confirmed',
+    payment_status: 'advance_paid', farmer_count: 1, _demo: true,
+  },
+  {
+    id: 1003,
+    order_ref: 'ORD-DEMO-003',
+    crop_name: 'Brinjal', crop_variety: 'Hybrid',
+    quantity_kg_requested: 200, quantity_kg_fulfilled: null,
+    delivery_district: 'Coimbatore',
+    delivery_date_required: new Date(Date.now() + 14 * 86400000).toISOString(),
+    price_per_kg_max: 18, status: 'pending',
+    payment_status: 'pending', farmer_count: 0, _demo: true,
+  },
+];
+
+const DEMO_DETAIL = {
+  1001: {
+    order: DEMO_ORDERS[0],
+    farmer_assignments: [
+      { farmer_name:'Ramu Krishnan', district:'Vellore', grade:'A', supply_type:'current', quantity_kg_assigned:300, farmer_status:'confirmed' },
+      { farmer_name:'Selvam Murugan', district:'Tirunelveli', grade:'A', supply_type:'current', quantity_kg_assigned:200, farmer_status:'confirmed' },
+    ],
+    logistics: {
+      driver_name:'Kumar Raj', driver_mobile:'9876500001',
+      vehicle_type:'mini_truck', vehicle_number:'TN 09 AB 1234',
+      estimated_distance_km:148, estimated_duration_min:195,
+      status:'in_transit',
+      dispatched_at: new Date(Date.now() - 2 * 3600000).toISOString(),
+      delivered_at: null,
+      current_lat:12.82, current_lng:79.69,
+      last_location_update: new Date(Date.now() - 15 * 60000).toISOString(),
+      route_plan: {
+        stops: [
+          { type:'pickup',   farmer_name:'Ramu Krishnan', address:'Katpadi, Vellore',                quantity_kg:300, distance_from_prev_km:0  },
+          { type:'pickup',   farmer_name:'Selvam Murugan', address:'Cheranmahadevi, Tirunelveli',   quantity_kg:200, distance_from_prev_km:65 },
+          { type:'delivery', address:'Chennai, Tamil Nadu', quantity_kg:null, distance_from_prev_km:83 },
+        ],
+      },
+    },
+    payments: [
+      { payment_phase:'advance_50', payment_status:'paid', amount_inr:7000 },
+    ],
+  },
+  1002: {
+    order: DEMO_ORDERS[1],
+    farmer_assignments: [
+      { farmer_name:'Anbu Raj', district:'Coimbatore', grade:'A', supply_type:'current', quantity_kg_assigned:800, farmer_status:'confirmed' },
+    ],
+    logistics: null,
+    payments: [
+      { payment_phase:'advance_50', payment_status:'paid', amount_inr:8800 },
+    ],
+  },
+  1003: {
+    order: DEMO_ORDERS[2],
+    farmer_assignments: [], logistics: null, payments: [],
+  },
+};
+
+/* ════════════════════════════════════════════════
+   State
+════════════════════════════════════════════════ */
+let _allOrders    = [];
+let _activeFilter = 'all';
+let _isDemo       = false;
+
+/* ════════════════════════════════════════════════
+   Step computation
+════════════════════════════════════════════════ */
+const STEPS = [
+  { key:'placed',   label:'Order Placed',      icon:'📋' },
+  { key:'paid',     label:'Payment Confirmed',  icon:'💳' },
+  { key:'matched',  label:'Farmers Matched',    icon:'👨‍🌾' },
+  { key:'transit',  label:'In Transit',         icon:'🚚' },
+  { key:'delivery', label:'Out for Delivery',   icon:'📍' },
+  { key:'done',     label:'Delivered',          icon:'✅' },
+];
+
+function getStepIndex(order) {
+  const s = order.status;
+  const p = order.payment_status;
+  if (s === 'delivered')     return 5;
+  if (s === 'in_transit')    return 3;
+  if (s === 'in_fulfillment') return 2;
+  if (s === 'confirmed' && p === 'advance_paid') return 2;
+  if (s === 'confirmed')     return 1;
+  if (p === 'advance_paid')  return 1;
+  return 0; // pending
+}
+
+/* ════════════════════════════════════════════════
+   Load orders
+════════════════════════════════════════════════ */
+async function loadOrders() {
+  document.getElementById('orders-list').innerHTML =
+    '<div style="padding:40px;text-align:center;color:var(--text-muted);"><p>Loading orders…</p></div>';
+  try {
+    const data   = await API.get('/api/customer/orders');
+    const orders = data?.orders || [];
+    if (!orders.length) {
+      _allOrders = DEMO_ORDERS; _isDemo = true;
+      document.getElementById('demo-banner').style.display = 'flex';
+    } else {
+      _allOrders = orders; _isDemo = false;
+    }
+  } catch {
+    _allOrders = DEMO_ORDERS; _isDemo = true;
+    document.getElementById('demo-banner').style.display = 'flex';
+  }
+  renderOrderList(_activeFilter);
+}
+
+/* ════════════════════════════════════════════════
+   Render order cards (Meesho style)
+════════════════════════════════════════════════ */
+function renderOrderList(filter) {
+  _activeFilter = filter;
+
+  // Update tabs
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+  const tabs = document.querySelectorAll('.ftab');
+  const filterMap = { all:0, pending:1, confirmed:2, in_transit:3, delivered:4 };
+  if (tabs[filterMap[filter]]) tabs[filterMap[filter]].classList.add('active');
+
+  const filtered = filter === 'all' ? _allOrders : _allOrders.filter(o => o.status === filter);
+  document.getElementById('order-count').textContent =
+    `${filtered.length} order${filtered.length !== 1 ? 's' : ''}`;
+
+  const container = document.getElementById('orders-list');
+  if (!filtered.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>${filter === 'all' ? 'No orders yet' : 'No ' + filter.replace('_',' ') + ' orders'}</h3>
+        <p>${filter === 'all' ? 'Browse the marketplace to place your first order.' : 'Try a different filter.'}</p>
+        ${filter === 'all' ? `<a href="/customer/marketplace.html" class="btn btn-primary" style="margin-top:12px;">Browse Marketplace →</a>` : ''}
+      </div>`;
+    return;
+  }
+
+  const statusColorMap = {
+    pending:'#D99922', confirmed:'#3b82f6', in_fulfillment:'#a855f7',
+    in_transit:'#f59e0b', delivered:'#22c55e', cancelled:'#ef4444',
+  };
+
+  container.innerHTML = filtered.map(o => {
+    const emoji    = getCropEmoji(o.crop_name);
+    const stepIdx  = getStepIndex(o);
+    const totalInr = (o.quantity_kg_fulfilled || o.quantity_kg_requested) * (o.price_per_kg_max || 30);
+    const color    = statusColorMap[o.status] || '#888';
+
+    return `
+    <div class="order-card" onclick="viewOrder(${o.id})">
+      <div class="order-card-header">
+        <div class="order-card-emoji">${emoji}</div>
+        <div class="order-card-info">
+          <div class="order-card-crop">
+            ${escapeHtml(o.crop_name)}${o.crop_variety ? ' · ' + escapeHtml(o.crop_variety) : ''}
+            <span class="order-card-ref">${escapeHtml(o.order_ref)}</span>
+          </div>
+          <div class="order-card-meta">
+            📦 ${formatKg(o.quantity_kg_requested)}
+            &nbsp;·&nbsp; 📍 ${escapeHtml(o.delivery_district)}
+            &nbsp;·&nbsp; 📅 By ${formatDate(o.delivery_date_required)}
+            ${o.farmer_count > 0 ? `&nbsp;·&nbsp; 👨‍🌾 ${o.farmer_count} farmer${o.farmer_count > 1 ? 's' : ''}` : ''}
+          </div>
+        </div>
+        <div class="order-card-right">
+          <div class="order-card-amount">${formatCurrency(totalInr)}</div>
+          <div class="order-card-status status-${o.status}">
+            <span style="width:6px;height:6px;border-radius:50%;background:${color};display:inline-block;"></span>
+            ${(o.status || '').replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase())}
+          </div>
+        </div>
+      </div>
+      <!-- Mini tracker -->
+      <div class="order-card-track">
+        <div class="mini-track">
+          ${STEPS.map((s, i) => `
+          <div class="mini-step ${i < stepIdx ? 'done' : i === stepIdx ? 'active' : ''}">
+            <div class="mini-dot"></div>
+            <div class="mini-step-label">${s.icon}</div>
+          </div>`).join('')}
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;">
+          ${STEPS.map((s, i) => `
+          <div style="flex:1;text-align:center;font-size:0.55rem;color:${i === stepIdx ? 'var(--trk-amber)' : i < stepIdx ? 'var(--trk-green)' : 'var(--text-muted)'};font-weight:${i <= stepIdx ? '700' : '400'};">
+            ${s.label}
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Auto-open from URL ?track=
+  const trackId = new URLSearchParams(window.location.search).get('track');
+  if (trackId) viewOrder(parseInt(trackId));
+}
+
+function filterOrders(filter) { renderOrderList(filter); }
+
+/* ════════════════════════════════════════════════
+   View order detail
+════════════════════════════════════════════════ */
+async function viewOrder(id) {
+  document.getElementById('modal-title').textContent = 'Loading…';
+  document.getElementById('modal-body').innerHTML =
+    '<div style="padding:40px;text-align:center;color:var(--text-muted);"><p>Loading…</p></div>';
+  document.getElementById('order-modal').classList.add('show');
+
+  let detail;
+  try {
+    detail = _isDemo ? DEMO_DETAIL[id] : (await API.get(`/api/customer/orders/${id}`));
+  } catch {
+    document.getElementById('modal-body').innerHTML =
+      '<div style="padding:32px;text-align:center;color:var(--trk-red);">Failed to load. Please try again.</div>';
+    return;
+  }
+  if (!detail) { document.getElementById('modal-body').innerHTML = '<div style="padding:20px;">Not found.</div>'; return; }
+
+  const { order: o, farmer_assignments: assignments = [], logistics, payments = [] } = detail;
+  const stepIdx  = getStepIndex(o);
+  const totalInr = (o.quantity_kg_fulfilled || o.quantity_kg_requested) * (o.price_per_kg_max || 30);
+  const halfInr  = Math.round(totalInr * 0.5);
+  const advance  = payments.find(p => p.payment_phase === 'advance_50');
+  const balance  = payments.find(p => p.payment_phase === 'balance_50');
+  const emoji    = getCropEmoji(o.crop_name);
+
+  document.getElementById('modal-title').textContent =
+    `${emoji} ${o.order_ref} — ${(o.status||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}`;
+
+  /* ── Summary ── */
+  const summaryHtml = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.82rem;margin-bottom:16px;">
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:2px;">Crop</div>
+        <strong>${escapeHtml(o.crop_name)}${o.crop_variety ? ' ('+escapeHtml(o.crop_variety)+')' : ''}</strong>
+      </div>
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:2px;">Quantity</div>
+        <strong>${formatKg(o.quantity_kg_requested)}</strong>
+        ${o.quantity_kg_fulfilled ? `<span style="color:var(--trk-green);font-size:0.72rem;"> ✓ ${formatKg(o.quantity_kg_fulfilled)} matched</span>` : ''}
+      </div>
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:2px;">Delivery</div>
+        <strong>📍 ${escapeHtml(o.delivery_district)}</strong>
+      </div>
+      <div style="background:var(--bg-elevated);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:2px;">Required By</div>
+        <strong>📅 ${formatDate(o.delivery_date_required)}</strong>
+      </div>
+    </div>
+    ${o.special_requirements ? `<div style="background:var(--bg-elevated);border-radius:10px;padding:10px 12px;font-size:0.78rem;margin-bottom:16px;"><span style="color:var(--text-muted);">Special requirements:</span> ${escapeHtml(o.special_requirements)}</div>` : ''}
+  `;
+
+  /* ── Meesho Tracker ── */
+  const trackStepDescs = [
+    'Order received & being processed',
+    `50% advance payment confirmed via Razorpay`,
+    `${assignments.length || 'Awaiting'} farmer${assignments.length!==1?'s':''} matched to your order`,
+    logistics ? `Dispatched ${logistics.dispatched_at ? timeAgo(logistics.dispatched_at) : ''} · ${logistics.vehicle_number || ''}` : 'Vehicle being assigned',
+    logistics?.current_lat ? `Last GPS: ${logistics.current_lat}, ${logistics.current_lng} (${timeAgo(logistics.last_location_update)})` : 'Approaching delivery location',
+    logistics?.delivered_at ? `Delivered ${timeAgo(logistics.delivered_at)}` : `Expected by ${formatDate(o.delivery_date_required)}`,
+  ];
+
+  const trackerHtml = `
+    <div class="sec-label">🚚 Live Order Tracking</div>
+    <div class="trk-header">
+      <div class="trk-status-row">
+        <div>
+          <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:2px;">Current Status</div>
+          <div class="trk-big-status" style="color:${stepIdx===5?'var(--trk-green)':stepIdx===3?'var(--trk-amber)':'var(--text-primary)'}">
+            ${STEPS[stepIdx].icon} ${STEPS[stepIdx].label}
+          </div>
+        </div>
+        ${logistics?.estimated_duration_min && o.status==='in_transit' ? `
+        <div class="trk-eta-chip">
+          ⏱ ETA: ~${Math.floor(logistics.estimated_duration_min/60)}h ${logistics.estimated_duration_min%60}m
+        </div>` : ''}
+        ${logistics?.estimated_distance_km ? `
+        <div class="trk-eta-chip" style="background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.25);color:#c084fc;">
+          📏 ${logistics.estimated_distance_km} km
+        </div>` : ''}
+      </div>
+
+      <div class="trk-timeline">
+        ${STEPS.map((step, i) => `
+        <div class="trk-step ${i < stepIdx ? 'done' : i === stepIdx ? 'active' : ''}">
+          <div class="trk-step-left">
+            <div class="trk-circle">${i < stepIdx ? '✓' : step.icon}</div>
+          </div>
+          <div class="trk-step-right">
+            <div class="trk-step-title">${step.label}</div>
+            <div class="trk-step-sub">${trackStepDescs[i]}</div>
+            ${i <= stepIdx && i === stepIdx ? `<div class="trk-step-time">● Active now</div>` : ''}
+            ${i < stepIdx ? `<div class="trk-step-time">✓ Completed</div>` : ''}
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    ${logistics ? `
+    <!-- Driver card -->
+    <div class="trk-driver-card">
+      <div class="trk-driver-avatar">🧑‍✈️</div>
+      <div class="trk-driver-info">
+        <div class="trk-driver-name">${escapeHtml(logistics.driver_name || '—')}</div>
+        <div class="trk-driver-sub">
+          🚛 ${(logistics.vehicle_type||'').replace(/_/g,' ')} &nbsp;·&nbsp; ${escapeHtml(logistics.vehicle_number||'')}
+        </div>
+      </div>
+      ${logistics.driver_mobile ? `
+      <a href="tel:${escapeHtml(logistics.driver_mobile)}" class="trk-call-btn">
+        📞 Call Driver
+      </a>` : ''}
+    </div>
+
+    <!-- Route -->
+    <div style="margin-top:14px;">
+      <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:8px;">🗺 Delivery Route</div>
+      ${(logistics.route_plan?.stops||[]).map((s,i) => `
+      <div class="route-stop">
+        <span class="route-stop-icon">${s.type==='pickup' ? '🏭' : '🏢'}</span>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:0.78rem;">${s.type==='pickup' ? 'Pickup · '+escapeHtml(s.farmer_name||'') : 'Delivery to Buyer'}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">${escapeHtml(s.address||'')}</div>
+          ${s.type==='pickup' ? `<div style="font-size:0.68rem;color:var(--trk-green);">${formatKg(s.quantity_kg)} &nbsp;·&nbsp; +${s.distance_from_prev_km}km</div>` : ''}
+        </div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-left:auto;white-space:nowrap;">Stop ${i+1}</div>
+      </div>`).join('')}
+    </div>` : (o.status === 'pending' ? `
+    <div class="alert alert-warn" style="margin-top:0;">
+      <span class="alert-icon">⚠</span>
+      <span>Pending farmer matching. Logistics assigned after confirmation & advance payment.</span>
+    </div>` : `
+    <div class="alert alert-info" style="margin-top:0;">
+      <span class="alert-icon">ℹ</span>
+      <span>Logistics plan being prepared. Driver & vehicle will be assigned soon.</span>
+    </div>`)}
+  `;
+
+  /* ── Traceability ── */
+  let traceHtml = '';
+  if (assignments.length) {
+    const total = assignments.reduce((s,a) => s+(a.quantity_kg_assigned||0), 0);
+    traceHtml = `
+      <div class="sec-label">🌱 Multi-Farm Traceability (${assignments.length} farmer${assignments.length>1?'s':''})</div>
+      ${assignments.map(a => {
+        const pct = total > 0 ? Math.round((a.quantity_kg_assigned/total)*100) : 0;
+        return `
+        <div class="trace-item">
+          <div style="flex:1;">
+            <div style="font-weight:700;">👨‍🌾 ${escapeHtml(a.farmer_name)}</div>
+            <div style="color:var(--text-muted);font-size:0.7rem;margin:2px 0;">
+              📍 ${escapeHtml(a.district)} &nbsp;·&nbsp; Grade ${escapeHtml(a.grade||'—')} &nbsp;·&nbsp; ${(a.supply_type||'').replace('_',' ')}
+            </div>
+            <div class="trace-bar"><div class="trace-fill" style="width:${pct}%"></div></div>
+          </div>
+          <div style="text-align:right;white-space:nowrap;">
+            <div style="font-weight:700;color:var(--trk-green);">${formatKg(a.quantity_kg_assigned)}</div>
+            <div style="font-size:0.65rem;color:var(--text-muted);">${pct}% of order</div>
+            <div style="margin-top:3px;">${statusBadge(a.farmer_status)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    `;
+  }
+
+  /* ── Payment Section (Amazon / Zepto style) ── */
+  const payHtml = `
+    <div class="sec-label">💳 Payment — 50/50 Protection</div>
+
+    <div class="pay-section">
+      <div class="pay-section-header">
+        <span>💰</span> Order Total: ${formatCurrency(totalInr)}
+        <span style="margin-left:auto;font-weight:400;color:var(--text-muted);">${formatKg(o.quantity_kg_fulfilled||o.quantity_kg_requested)} × ₹${o.price_per_kg_max||'—'}/kg</span>
+      </div>
+      <div class="pay-phases">
+        <div class="pay-phase-cell ${advance?.payment_status==='paid' ? 'paid' : ''}">
+          <div class="pay-phase-label">⚡ Advance (50%)</div>
+          <div class="pay-phase-amount">${formatCurrency(halfInr)}</div>
+          <div class="pay-phase-status ${advance?.payment_status==='paid' ? 'ps-paid' : 'ps-pending'}">
+            ${advance?.payment_status==='paid' ? '✓ Paid via Razorpay' : '● Payment Required'}
+          </div>
+          ${advance?.payment_status==='paid' ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">Paid before dispatch</div>' : ''}
+        </div>
+        <div class="pay-phase-cell ${balance?.payment_status==='paid' ? 'paid' : ''}">
+          <div class="pay-phase-label">🚚 Balance (50%)</div>
+          <div class="pay-phase-amount">${formatCurrency(halfInr)}</div>
+          <div class="pay-phase-status ${balance?.payment_status==='paid' ? 'ps-paid' : o.status==='delivered' ? 'ps-pending' : 'ps-after'}">
+            ${balance?.payment_status==='paid'
+              ? '✓ Paid — Order Complete'
+              : o.status==='delivered'
+              ? '● Due Now (Delivered!)'
+              : '⏳ Due After Delivery'}
+          </div>
+          ${o.status!=='delivered' && balance?.payment_status!=='paid' ? '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">After delivery confirmation</div>' : ''}
+        </div>
+      </div>
+    </div>
+
+    ${/* Advance CTA */ (!advance || advance.payment_status!=='paid') ? `
+    <div class="pay-cta-box">
+      <div class="pay-cta-title">
+        ⚡ Pay 50% Advance to Confirm Your Order
+      </div>
+      <div class="pay-breakdown">
+        <div class="pay-breakdown-row">
+          <span>Crop: ${escapeHtml(o.crop_name)} × ${formatKg(o.quantity_kg_requested)}</span>
+          <span>${formatCurrency(totalInr)}</span>
+        </div>
+        <div class="pay-breakdown-row total">
+          <span>50% Advance (due now)</span>
+          <span>${formatCurrency(halfInr)}</span>
+        </div>
+      </div>
+      <button class="rzp-btn" onclick="initiatePayment(${o.id}, 'advance_50')">
+        🔒 Pay ${formatCurrency(halfInr)} Advance
+      </button>
+      <div class="rzp-sub">Secured by Razorpay</div>
+      <div class="rzp-icons">
+        <span class="rzp-icon">UPI</span>
+        <span class="rzp-icon">CARD</span>
+        <span class="rzp-icon">NB</span>
+        <span class="rzp-icon">WALLET</span>
+        <span class="rzp-icon">EMI</span>
+      </div>
+      <div style="font-size:0.68rem;color:var(--text-muted);text-align:center;margin-top:6px;">
+        Remaining ${formatCurrency(halfInr)} paid only after you receive & verify your order
+      </div>
+    </div>` : ''}
+
+    ${/* Balance CTA */ (advance?.payment_status==='paid' && o.status==='delivered' && (!balance||balance.payment_status!=='paid')) ? `
+    <div class="pay-balance-box">
+      <div class="pay-balance-title">🎉 Order Delivered! Pay Balance to Complete.</div>
+      <div class="pay-breakdown" style="margin-bottom:12px;">
+        <div class="pay-breakdown-row">
+          <span>Advance already paid</span>
+          <span style="color:var(--trk-green);">✓ ${formatCurrency(halfInr)}</span>
+        </div>
+        <div class="pay-breakdown-row total">
+          <span>Balance due now</span>
+          <span>${formatCurrency(halfInr)}</span>
+        </div>
+      </div>
+      <button class="rzp-btn delivery" onclick="initiatePayment(${o.id}, 'balance_50')">
+        ✅ Pay Balance ${formatCurrency(halfInr)} & Complete Order
+      </button>
+      <div class="rzp-sub" style="margin-top:6px;">Secured by Razorpay · Farmers paid upon completion</div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('modal-body').innerHTML =
+    summaryHtml + trackerHtml + traceHtml + payHtml;
+
+  document.getElementById('modal-footer').innerHTML =
+    `<button class="btn btn-ghost" onclick="closeModal()">Close</button>`;
+}
+
+/* ════════════════════════════════════════════════
+   Payment
+════════════════════════════════════════════════ */
+async function initiatePayment(orderId, phase) {
+  if (_isDemo) {
+    if (confirm(`[DEMO MODE] Simulate Razorpay ${phase==='advance_50' ? '50% Advance' : '50% Balance'} payment?\n\nIn production, the Razorpay checkout with UPI/Card/NB options would open.`)) {
+      showToast('✅ Demo payment simulated! (not a real transaction)', 'success');
+      closeModal();
+    }
+    return;
+  }
+  try {
+    const data = await API.post('/api/customer/payment/create', { order_id: orderId, payment_phase: phase });
+    if (data.mode === 'mock') {
+      const amtInr = (data.amount_paise / 100).toLocaleString('en-IN');
+      if (confirm(`[DEMO] Simulate ₹${amtInr} payment for ${phase.replace(/_/g,' ')}?`)) {
+        await API.post('/api/customer/payment/mock-confirm', { payment_ref: data.payment_ref });
+        showToast('✅ Payment confirmed!', 'success');
+        closeModal();
+        loadOrders();
+      }
+    } else if (data.razorpay_key) {
+      const options = {
+        key:         data.razorpay_key,
+        amount:      data.amount_paise,
+        currency:    data.currency,
+        order_id:    data.gateway_order_id,
+        name:        'FarmConnect Platform',
+        description: phase === 'advance_50' ? '50% Advance — Farm-to-Buyer' : '50% Balance — Delivery Confirmed',
+        image:       'https://i.imgur.com/n5tjHFD.png',
+        prefill: { name: '', email: '', contact: '' },
+        theme:  { color: '#22c55e', backdrop_color: 'rgba(0,0,0,0.7)' },
+        modal: {
+          confirm_close: true,
+          ondismiss: () => showToast('Payment cancelled', 'warn'),
+        },
+        handler: async (response) => {
+          try {
+            await API.post('/api/customer/payment/verify', {
+              payment_ref:        data.payment_ref,
+              gateway_payment_id: response.razorpay_payment_id,
+              gateway_order_id:   response.razorpay_order_id,
+              gateway_signature:  response.razorpay_signature,
+            });
+            showToast('✅ Payment verified! Order confirmed.', 'success');
+            closeModal();
+            loadOrders();
+          } catch (e) { showToast('Payment verification failed. Contact support.', 'error'); }
+        },
+      };
+      const rzp = new Razorpay(options);
+      rzp.open();
+    }
+  } catch (e) { console.error('[Payment]', e); }
+}
+
+/* ════════════════════════════════════════════════
+   Helpers
+════════════════════════════════════════════════ */
+function closeModal() { document.getElementById('order-modal').classList.remove('show'); }
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  return Math.floor(diff / 86400) + 'd ago';
+}
+
+/* ── Boot ── */
+loadOrders();
+</script>
+
+<script>
+  const ls = document.getElementById('nav-lang-switcher');
+  if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+</script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin panel to verify and manage registered buyers on FarmConnect." />
+  <title>Buyer Management — Admin | FarmConnect</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    /* ── Page-level enhancements ── */
+    .buyers-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 180px;
+      max-width: 280px;
+    }
+
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      padding: 7px 12px 7px 32px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .search-wrap input:focus {
+      border-color: var(--primary);
+    }
+
+    .buyer-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .buyer-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .buyer-cell-info strong {
+      display: block;
+      font-size: 0.875rem;
+      color: var(--text-primary);
+    }
+
+    .buyer-cell-info small {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .count-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .modal-section-title {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .detail-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+
+    .detail-item .label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+
+    .detail-item .value {
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    table tbody tr {
+      animation: rowFadeIn 0.25s ease forwards;
+    }
+
+    @keyframes rowFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     APP LAYOUT
+════════════════════════════════════════════════════ -->
+<div class="app-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Admin Console</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <a href="/admin/dashboard.html" class="nav-item">
+        <span class="nav-icon">&#9635;</span> Dashboard
+      </a>
+
+      <div class="nav-section">Management</div>
+      <a href="/admin/farmers.html" class="nav-item">
+        <span class="nav-icon">&#9651;</span> Farmers
+      </a>
+      <a href="/admin/customers.html" class="nav-item active">
+        <span class="nav-icon">&#128101;</span> Buyers
+      </a>
+      <a href="/admin/orders.html" class="nav-item">
+        <span class="nav-icon">&#9660;</span> Orders
+      </a>
+
+      <div class="nav-section">Intelligence</div>
+      <a href="/admin/analytics.html" class="nav-item">
+        <span class="nav-icon">&#9636;</span> Analytics
+      </a>
+      <a href="/admin/logistics.html" class="nav-item">
+        <span class="nav-icon">&#9654;</span> Logistics
+      </a>
+
+      <div class="nav-section">Security</div>
+      <a href="/admin/audit.html" class="nav-item">
+        <span class="nav-icon">&#128274;</span> Audit Log
+      </a>
+    </nav>
+
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">
+        &#x2192; Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <div class="main-content">
+
+    <!-- Top Header -->
+    <header class="top-header">
+      <div>
+        <span class="header-title">Buyer Management</span>
+        <span class="header-subtitle">Verify and manage registered buyers</span>
+      </div>
+      <div class="buyers-toolbar">
+        <!-- Live search -->
+        <div class="search-wrap">
+          <span class="search-icon">&#128269;</span>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Search name, email…"
+            oninput="filterTable()"
+          />
+        </div>
+
+        <!-- Status filter -->
+        <select id="status-filter" class="form-select" style="width:150px;" onchange="loadCustomers()">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+
+        <!-- Admin badge -->
+        <span class="badge badge-danger">ADMIN</span>
+      </div>
+    </header>
+
+    <!-- Page Body -->
+    <div class="page-content">
+      <div class="card">
+
+        <!-- Card header with count chip -->
+        <div class="card-header" style="margin-bottom: 0;">
+          <span class="card-title">Registered Buyers</span>
+          <span class="count-chip" id="count-chip">&#128101; Loading…</span>
+        </div>
+
+        <!-- Table container -->
+        <div id="customers-table" style="margin-top: 16px;">
+          <div class="empty-state">
+            <div class="empty-icon"></div>
+            <p>Loading buyers…</p>
+          </div>
+        </div>
+
+      </div><!-- /.card -->
+    </div><!-- /.page-content -->
+
+  </div><!-- /.main-content -->
+</div><!-- /.app-layout -->
+
+
+<!-- ═══════════════════════════════════════════════════
+     BUYER DETAIL MODAL
+════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="customer-modal">
+  <div class="modal" style="max-width: 520px;">
+    <div class="modal-header">
+      <h3 class="modal-title">&#128101; Buyer Details</h3>
+      <button class="modal-close" onclick="closeModal()"></button>
+    </div>
+
+    <div id="modal-body"></div>
+
+    <div class="modal-footer" id="modal-actions"></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════ -->
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+
+<script>
+  /* ── State: cache all loaded buyers for client-side search ── */
+  let _allCustomers = [];
+
+  /* ════════════════════════════════════════════════
+     Load buyers from API based on status filter
+  ════════════════════════════════════════════════ */
+  async function loadCustomers() {
+    const status = document.getElementById('status-filter').value;
+    const url    = `/api/admin/customers${status ? '?status=' + status : ''}`;
+    const data   = await API.get(url);
+
+    _allCustomers = (data && data.customers) ? data.customers : [];
+
+    // Reset search so full list shows after filter change
+    document.getElementById('search-input').value = '';
+    renderTable(_allCustomers);
+  }
+
+  /* ════════════════════════════════════════════════
+     Render the buyers table from a given array
+  ════════════════════════════════════════════════ */
+  function renderTable(customers) {
+    const container = document.getElementById('customers-table');
+    const chip      = document.getElementById('count-chip');
+
+    chip.innerHTML = `&#128101; ${customers.length} buyer${customers.length !== 1 ? 's' : ''}`;
+
+    if (!customers.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon" style="font-size:2.5rem;">&#128101;</div>
+          <h4 style="margin-top:8px;">No buyers found</h4>
+          <p>Try adjusting the status filter or search query.</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Buyer</th>
+              <th>Business</th>
+              <th>Type</th>
+              <th>District</th>
+              <th>Status</th>
+              <th style="text-align:center;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${customers.map(c => `
+              <tr>
+                <td>
+                  <div class="buyer-cell">
+                    <div class="buyer-avatar">
+                      ${escapeHtml((c.full_name || 'B').charAt(0).toUpperCase())}
+                    </div>
+                    <div class="buyer-cell-info">
+                      <strong>${escapeHtml(c.full_name)}</strong>
+                      <small>${escapeHtml(c.email)}</small>
+                    </div>
+                  </div>
+                </td>
+                <td>${escapeHtml(c.business_name || '—')}</td>
+                <td>${escapeHtml(c.business_type || '—')}</td>
+                <td>${escapeHtml(c.district || '—')}</td>
+                <td>${statusBadge(c.verification_status)}</td>
+                <td style="text-align:center;">
+                  <button
+                    class="btn btn-outline btn-sm"
+                    onclick="viewCustomer(
+                      ${c.id},
+                      '${escapeHtml(c.full_name)}',
+                      '${escapeHtml(c.verification_status)}',
+                      '${escapeHtml(c.email)}',
+                      '${escapeHtml(c.business_name || '')}',
+                      '${escapeHtml(c.business_type || '')}',
+                      '${escapeHtml(c.district || '')}'
+                    )"
+                  >
+                    Review &#8594;
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  /* ════════════════════════════════════════════════
+     Client-side live search (name / email / business / district)
+  ════════════════════════════════════════════════ */
+  function filterTable() {
+    const query = document.getElementById('search-input').value.toLowerCase().trim();
+    if (!query) { renderTable(_allCustomers); return; }
+
+    const filtered = _allCustomers.filter(c =>
+      (c.full_name     || '').toLowerCase().includes(query) ||
+      (c.email         || '').toLowerCase().includes(query) ||
+      (c.business_name || '').toLowerCase().includes(query) ||
+      (c.district      || '').toLowerCase().includes(query)
+    );
+    renderTable(filtered);
+  }
+
+  /* ════════════════════════════════════════════════
+     Open buyer detail modal
+  ════════════════════════════════════════════════ */
+  function viewCustomer(id, name, status, email, business, type, district) {
+    document.getElementById('modal-body').innerHTML = `
+      <div class="modal-section-title" style="margin-bottom:10px;">Buyer Info</div>
+
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="label">Full Name</div>
+          <div class="value">${escapeHtml(name)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">Email</div>
+          <div class="value">${escapeHtml(email)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">Business Name</div>
+          <div class="value">${escapeHtml(business || '—')}</div>
+        </div>
+        <div class="detail-item">
+          <div class="label">Business Type</div>
+          <div class="value">${escapeHtml(type || '—')}</div>
+        </div>
+        <div class="detail-item" style="grid-column: 1 / -1;">
+          <div class="label">District</div>
+          <div class="value">${escapeHtml(district || '—')}</div>
+        </div>
+      </div>
+
+      <div class="alert alert-info" style="margin-bottom:16px;">
+        <span class="alert-icon">&#9432;</span>
+        <span>Current Status: ${statusBadge(status)}</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="verify-notes">Verification Notes</label>
+        <textarea
+          id="verify-notes"
+          class="form-textarea"
+          rows="3"
+          placeholder="Add a reason for approval or rejection…"
+        ></textarea>
+      </div>
+
+      <input type="hidden" id="verify-customer-id" value="${id}" />
+    `;
+
+    document.getElementById('modal-actions').innerHTML = `
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger btn-sm" onclick="verifyCustomer('rejected')">
+        &#10005; Reject
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="verifyCustomer('approved')">
+        &#10003; Approve
+      </button>
+    `;
+
+    document.getElementById('customer-modal').classList.add('show');
+  }
+
+  /* ════════════════════════════════════════════════
+     Submit verify/reject decision to backend
+  ════════════════════════════════════════════════ */
+  async function verifyCustomer(status) {
+    const id    = document.getElementById('verify-customer-id').value;
+    const notes = document.getElementById('verify-notes').value;
+
+    await API.patch(`/api/admin/customers/${id}/verify`, { status, notes });
+
+    showToast(`Buyer ${status} successfully`, 'success');
+    closeModal();
+    loadCustomers();
+  }
+
+  /* ════════════════════════════════════════════════
+     Close modal helper
+  ════════════════════════════════════════════════ */
+  function closeModal() {
+    document.getElementById('customer-modal').classList.remove('show');
+  }
+
+  /* ── Init ── */
+  loadCustomers();
+</script>
+
+<!-- Language switcher -->
+<script>
+  const ls = document.getElementById('nav-lang-switcher');
+  if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+</script>
+
+</body>
+</html>

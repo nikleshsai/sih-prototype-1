@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — FarmConnect</title>
+  <meta name="description" content="FarmConnect Admin Console — Platform overview, verifications, orders and analytics">
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    .security-banner {
+      background: rgba(248,81,73,0.08);
+      border: 1px solid rgba(248,81,73,0.2);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      color: #f87171;
+    }
+    .stat-loading {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-md);
+      height: 80px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+    .section-loading {
+      padding: 32px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    .section-error {
+      padding: 24px;
+      text-align: center;
+      color: var(--accent-admin);
+      font-size: 0.85rem;
+    }
+    .section-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    .retry-btn {
+      margin-top: 10px;
+      padding: 6px 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .retry-btn:hover { background: var(--border); color: var(--text-primary); }
+    .audit-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .audit-row:last-child { border-bottom: none; }
+    .audit-action { font-weight: 600; color: var(--text-primary); }
+    .audit-email { color: var(--text-muted); font-size: 0.75rem; }
+    .order-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .order-row:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Admin Console</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <a href="/admin/dashboard.html" class="nav-item active">
+        <span class="nav-icon">&#9635;</span> Dashboard
+      </a>
+      <div class="nav-section">Management</div>
+      <a href="/admin/farmers.html" class="nav-item">
+        <span class="nav-icon">&#9651;</span> Farmers
+        <span class="nav-badge" id="pending-farmers-badge" style="display:none"></span>
+      </a>
+      <a href="/admin/customers.html" class="nav-item">
+        <span class="nav-icon">&#9711;</span> Buyers
+        <span class="nav-badge" id="pending-customers-badge" style="display:none"></span>
+      </a>
+      <a href="/admin/orders.html" class="nav-item">
+        <span class="nav-icon">&#9660;</span> Orders
+      </a>
+      <div class="nav-section">Intelligence</div>
+      <a href="/admin/analytics.html" class="nav-item">
+        <span class="nav-icon">&#9636;</span> Analytics
+      </a>
+      <a href="/admin/logistics.html" class="nav-item">
+        <span class="nav-icon">&#9654;</span> Logistics
+      </a>
+      <div class="nav-section">Security</div>
+      <a href="/admin/audit.html" class="nav-item">
+        <span class="nav-icon">&#128274;</span> Audit Log
+      </a>
+    </nav>
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-header">
+      <div>
+        <span class="header-title">Admin Dashboard</span>
+        <span class="header-subtitle" id="admin-welcome">Loading...</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="current-time" style="font-size:0.75rem;color:var(--text-muted);"></span>
+        <span class="badge badge-danger">ADMIN</span>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- Security banner -->
+      <div class="security-banner">
+        <span>&#128274;</span>
+        <span>All actions in this panel are logged and audited. Admin access is enforced server-side.</span>
+      </div>
+
+      <!-- Session error banner (hidden by default) -->
+      <div id="session-error" class="hidden" style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="color:#f87171;font-size:0.875rem;">&#9888; Session expired or unauthorized. Please log in again.</span>
+        <a href="/login.html" class="btn btn-primary btn-sm">Log In</a>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-loading" style="--stat-color:#2ECC71;height:80px;border-top:3px solid #2ECC71;border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="--stat-color:#D29922;height:80px;border-top:3px solid #D29922;border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="--stat-color:#388BFD;height:80px;border-top:3px solid #388BFD;border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="--stat-color:#D29922;height:80px;border-top:3px solid #D29922;border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="--stat-color:#2ECC71;height:80px;border-top:3px solid #2ECC71;border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="--stat-color:#3FB950;height:80px;border-top:3px solid #3FB950;border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="--stat-color:#388BFD;height:80px;border-top:3px solid #388BFD;border-radius:var(--radius-md);"></div>
+        <div class="stat-loading" style="--stat-color:#F85149;height:80px;border-top:3px solid #F85149;border-radius:var(--radius-md);"></div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;margin-top:20px;">
+        <a href="/admin/farmers.html" class="btn btn-outline btn-sm">&#9651; Verify Farmers</a>
+        <a href="/admin/customers.html" class="btn btn-outline btn-sm">&#9711; Verify Buyers</a>
+        <a href="/admin/orders.html" class="btn btn-outline btn-sm">&#9660; Manage Orders</a>
+        <a href="/admin/analytics.html" class="btn btn-outline btn-sm">&#9636; View Analytics</a>
+        <a href="/admin/audit.html" class="btn btn-outline btn-sm">&#128274; Audit Log</a>
+      </div>
+
+      <!-- Two column layout -->
+      <div class="grid-2" style="gap:20px;">
+
+        <!-- Recent Orders -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">&#9660; Recent Orders</span>
+            <a href="/admin/orders.html" class="btn btn-ghost btn-sm">View All</a>
+          </div>
+          <div id="recent-orders-list">
+            <div class="section-loading">Loading orders...</div>
+          </div>
+        </div>
+
+        <!-- Recent Security Events -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">&#128274; Recent Security Events</span>
+            <a href="/admin/audit.html" class="btn btn-ghost btn-sm">Full Log</a>
+          </div>
+          <div id="audit-list">
+            <div class="section-loading">Loading events...</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Platform Supply Overview -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <span class="card-title">&#9651; Platform Supply Overview</span>
+          <a href="/admin/analytics.html" class="btn btn-ghost btn-sm">Full Analytics</a>
+        </div>
+        <div id="supply-overview">
+          <div class="section-loading">Loading supply data...</div>
+        </div>
+      </div>
+
+      <!-- Pending Verifications -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-header">
+          <span class="card-title">&#9888; Pending Verifications</span>
+        </div>
+        <div id="pending-list">
+          <div class="section-loading">Loading verifications...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // --- Helpers ---
+  function el(id) { return document.getElementById(id); }
+
+  function showSessionError() {
+    el('session-error').classList.remove('hidden');
+    el('stats-grid').innerHTML = '<div style="grid-column:1/-1;padding:20px;text-align:center;color:var(--text-muted);">Sign in to view statistics.</div>';
+    el('recent-orders-list').innerHTML = '<div class="section-empty">Sign in to view orders.</div>';
+    el('audit-list').innerHTML = '<div class="section-empty">Sign in to view events.</div>';
+    el('supply-overview').innerHTML = '<div class="section-empty">Sign in to view supply data.</div>';
+    el('pending-list').innerHTML = '<div class="section-empty">Sign in to view pending verifications.</div>';
+  }
+
+  function renderError(elementId, message, retryFn) {
+    el(elementId).innerHTML =
+      '<div class="section-error">' +
+        '<div>' + message + '</div>' +
+        (retryFn ? '<button class="retry-btn" onclick="(' + retryFn.toString() + ')()">Retry</button>' : '') +
+      '</div>';
+  }
+
+  function renderEmpty(elementId, message) {
+    el(elementId).innerHTML = '<div class="section-empty">' + message + '</div>';
+  }
+
+  // --- Stats renderer ---
+  function renderStats(data) {
+    var statsGrid = el('stats-grid');
+    var f = data.farmers || {};
+    var c = data.customers || {};
+    var o = data.orders || {};
+    var s = data.supply || {};
+    var p = data.payments || {};
+    var l = data.logistics || {};
+
+    statsGrid.innerHTML =
+      '<div class="stat-card" style="--stat-color:#2ECC71">' +
+        '<div class="stat-label">&#9651; Total Farmers</div>' +
+        '<div class="stat-value">' + (f.total || 0) + '</div>' +
+        '<div class="stat-sub">' + (f.approved || 0) + ' approved &middot; ' + (f.pending || 0) + ' pending</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:#D29922">' +
+        '<div class="stat-label">&#9888; Pending Verification</div>' +
+        '<div class="stat-value">' + ((f.pending || 0) + (c.pending || 0)) + '</div>' +
+        '<div class="stat-sub">' + (f.pending || 0) + ' farmers &middot; ' + (c.pending || 0) + ' buyers</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:#388BFD">' +
+        '<div class="stat-label">&#9711; Total Buyers</div>' +
+        '<div class="stat-value">' + (c.total || 0) + '</div>' +
+        '<div class="stat-sub">' + (c.approved || 0) + ' approved</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:#D29922">' +
+        '<div class="stat-label">&#9660; Total Orders</div>' +
+        '<div class="stat-value">' + (o.total || 0) + '</div>' +
+        '<div class="stat-sub">' + (o.pending || 0) + ' pending &middot; ' + (o.in_fulfillment || 0) + ' in progress</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:#2ECC71">' +
+        '<div class="stat-label">&#9651; Available Supply</div>' +
+        '<div class="stat-value">' + formatKg(s.total_available_kg || 0) + '</div>' +
+        '<div class="stat-sub">' + (s.active_listings || 0) + ' active listings</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:#3FB950">' +
+        '<div class="stat-label">&#8377; Platform Revenue</div>' +
+        '<div class="stat-value">' + formatCurrency(p.total_paid_inr || 0) + '</div>' +
+        '<div class="stat-sub">' + (p.pending_settlements || 0) + ' settlements pending</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:#388BFD">' +
+        '<div class="stat-label">&#9654; Active Logistics</div>' +
+        '<div class="stat-value">' + ((l.planned || 0) + (l.in_transit || 0)) + '</div>' +
+        '<div class="stat-sub">' + (l.planned || 0) + ' planned &middot; ' + (l.in_transit || 0) + ' in transit</div>' +
+      '</div>' +
+      '<div class="stat-card" style="--stat-color:#F85149">' +
+        '<div class="stat-label">&#10003; Delivered Orders</div>' +
+        '<div class="stat-value">' + (o.delivered || 0) + '</div>' +
+        '<div class="stat-sub">Successfully completed</div>' +
+      '</div>';
+
+    // Notification badges
+    if ((f.pending || 0) > 0) {
+      var fb = el('pending-farmers-badge');
+      if (fb) { fb.textContent = f.pending; fb.style.display = 'inline'; }
+    }
+    if ((c.pending || 0) > 0) {
+      var cb = el('pending-customers-badge');
+      if (cb) { cb.textContent = c.pending; cb.style.display = 'inline'; }
+    }
+
+    // Audit events from same response
+    var auditList = el('audit-list');
+    var events = data.recent_audit || [];
+    if (events.length === 0) {
+      auditList.innerHTML = '<div class="section-empty">No recent security events.</div>';
+    } else {
+      auditList.innerHTML = events.map(function(a) {
+        var isOk = a.result === 'success';
+        var badge = isOk
+          ? '<span class="badge badge-success">OK</span>'
+          : '<span class="badge badge-danger">FAIL</span>';
+        return '<div class="audit-row">' +
+          '<div style="flex:1;">' +
+            '<div class="audit-action">' + escapeHtml(a.action.replace(/_/g, ' ')) + '</div>' +
+            '<div class="audit-email">' + escapeHtml(a.user_email || '') + '</div>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            badge +
+            '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">' + timeAgo(a.timestamp) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    // Supply overview
+    var supplyEl = el('supply-overview');
+    supplyEl.innerHTML =
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;padding:4px 0;">' +
+        '<div style="flex:1;min-width:140px;padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">' +
+          '<div style="font-size:1.4rem;font-weight:800;color:var(--primary);">' + formatKg(s.total_available_kg || 0) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Total Available</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:140px;padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">' +
+          '<div style="font-size:1.4rem;font-weight:800;color:var(--accent-info);">' + (s.active_listings || 0) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Active Listings</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:140px;padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">' +
+          '<div style="font-size:1.4rem;font-weight:800;color:var(--accent-warn);">' + (o.total || 0) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Total Orders</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:140px;padding:16px;background:var(--bg-elevated);border-radius:var(--radius-sm);text-align:center;">' +
+          '<div style="font-size:1.4rem;font-weight:800;color:var(--accent-success);">' + formatCurrency(p.total_paid_inr || 0) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--text-secondary);">Revenue Processed</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // --- Load main dashboard data (stats + audit) ---
+  function loadDashboard() {
+    var timeout = setTimeout(function() {
+      // Timeout after 10 seconds
+      el('stats-grid').innerHTML =
+        '<div style="grid-column:1/-1;" class="section-error">' +
+          'Dashboard data timed out. <button class="retry-btn" onclick="loadDashboard()">Retry</button>' +
+        '</div>';
+    }, 10000);
+
+    API.get('/api/admin/dashboard')
+      .then(function(data) {
+        clearTimeout(timeout);
+        if (!data) return; // 401/403 redirect already handled
+        renderStats(data);
+      })
+      .catch(function(err) {
+        clearTimeout(timeout);
+        var status = err && err.status;
+        if (status === 401 || status === 403) {
+          showSessionError();
+          return;
+        }
+        el('stats-grid').innerHTML =
+          '<div style="grid-column:1/-1;" class="section-error">' +
+            'Failed to load dashboard data (error ' + (status || 'network') + ').' +
+            '<br><button class="retry-btn" onclick="loadDashboard()">Retry</button>' +
+          '</div>';
+        renderError('audit-list', 'Could not load security events.', loadDashboard);
+        renderError('supply-overview', 'Could not load supply overview.', loadDashboard);
+      });
+  }
+
+  // --- Load recent orders ---
+  function loadRecentOrders() {
+    var timeout = setTimeout(function() {
+      renderError('recent-orders-list', 'Orders timed out.', loadRecentOrders);
+    }, 10000);
+
+    API.get('/api/admin/orders')
+      .then(function(data) {
+        clearTimeout(timeout);
+        if (!data) return;
+        var orders = (data.orders || []).slice(0, 6);
+        if (orders.length === 0) {
+          renderEmpty('recent-orders-list', 'No orders yet. Orders will appear here once buyers place them.');
+          return;
+        }
+        el('recent-orders-list').innerHTML = orders.map(function(o) {
+          return '<div class="order-row">' +
+            '<div style="flex:1;">' +
+              '<div style="font-size:0.82rem;font-weight:600;">' + escapeHtml(o.order_ref || '') + '</div>' +
+              '<div style="font-size:0.72rem;color:var(--text-muted);">' +
+                escapeHtml(o.crop_name || '') + ' &middot; ' + formatKg(o.quantity_kg_requested) + ' &middot; ' + escapeHtml(o.customer_name || '') +
+              '</div>' +
+            '</div>' +
+            '<div style="text-align:right;">' +
+              statusBadge(o.status) +
+              '<div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">' + timeAgo(o.created_at) + '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      })
+      .catch(function(err) {
+        clearTimeout(timeout);
+        if (err && (err.status === 401 || err.status === 403)) return;
+        renderError('recent-orders-list', 'Could not load orders.', loadRecentOrders);
+      });
+  }
+
+  // --- Load pending verifications ---
+  function loadPendingVerifications() {
+    var timeout = setTimeout(function() {
+      renderError('pending-list', 'Verifications timed out.', loadPendingVerifications);
+    }, 10000);
+
+    Promise.all([
+      API.get('/api/admin/farmers?status=pending').catch(function() { return { farmers: [] }; }),
+      API.get('/api/admin/customers?status=pending').catch(function() { return { customers: [] }; })
+    ]).then(function(results) {
+      clearTimeout(timeout);
+      var farmersData = results[0] || {};
+      var customersData = results[1] || {};
+      var pending = []
+        .concat((farmersData.farmers || []).map(function(f) { return Object.assign({}, f, { type: 'Farmer' }); }))
+        .concat((customersData.customers || []).map(function(c) { return Object.assign({}, c, { type: 'Buyer' }); }));
+
+      if (pending.length === 0) {
+        renderEmpty('pending-list', '&#10003; All caught up! No pending verifications at this time.');
+        return;
+      }
+
+      el('pending-list').innerHTML =
+        '<div class="table-wrapper"><table>' +
+          '<thead><tr><th>Type</th><th>Name</th><th>District</th><th>Registered</th><th>Action</th></tr></thead>' +
+          '<tbody>' +
+          pending.slice(0, 8).map(function(p) {
+            var badgeClass = p.type === 'Farmer' ? 'badge-success' : 'badge-info';
+            var link = '/admin/' + (p.type === 'Farmer' ? 'farmers' : 'customers') + '.html';
+            return '<tr>' +
+              '<td><span class="badge ' + badgeClass + '">' + p.type + '</span></td>' +
+              '<td><strong>' + escapeHtml(p.full_name || '') + '</strong><br>' +
+                '<small style="color:var(--text-muted)">' + escapeHtml(p.email || '') + '</small></td>' +
+              '<td>' + escapeHtml(p.district || '') + '</td>' +
+              '<td>' + timeAgo(p.created_at) + '</td>' +
+              '<td><a href="' + link + '" class="btn btn-primary btn-sm">Review</a></td>' +
+            '</tr>';
+          }).join('') +
+          '</tbody></table></div>';
+    }).catch(function() {
+      clearTimeout(timeout);
+      renderError('pending-list', 'Could not load pending verifications.', loadPendingVerifications);
+    });
+  }
+
+  // --- Initialize ---
+  function init() {
+    // Check session
+    var user = API.getUser();
+    if (!user || !user.role || user.role !== 'admin') {
+      window.location.href = '/login.html';
+      return;
+    }
+
+    // Header info
+    el('admin-welcome').textContent = 'Logged in as ' + (user.email || '');
+
+    // Live clock
+    setInterval(function() {
+      el('current-time').textContent = new Date().toLocaleTimeString('en-IN');
+    }, 1000);
+
+    // Language switcher
+    var ls = el('nav-lang-switcher');
+    if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+
+    // Load all sections in parallel
+    loadDashboard();
+    loadRecentOrders();
+    loadPendingVerifications();
+  }
+
+  // Run immediately — scripts are at bottom of body, DOM is ready
+  init();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Farmer profile, land registration and crop listings on FarmConnect." />
+  <title>My Profile — FarmConnect Farmer</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    /* ── Crop card styles ── */
+    .crop-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      position: relative;
+      transition: border-color var(--transition);
+    }
+    .crop-card:hover { border-color: var(--primary); }
+
+    .crop-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .crop-card-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .crop-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.77rem;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .crop-meta-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 3px 8px;
+    }
+
+    /* Inline edit form inside crop card */
+    .crop-edit-form {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .crop-edit-form.open { display: block; }
+
+    .crop-edit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Info detail grid */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      font-size: 0.875rem;
+    }
+
+    .info-item .label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .info-item .value {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Section divider */
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 20px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(46,204,113,0.12);
+      border: 1px solid rgba(46,204,113,0.3);
+      border-radius: 99px;
+      padding: 2px 8px;
+      font-size: 0.68rem;
+      color: var(--primary);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     APP LAYOUT
+════════════════════════════════════════════════════ -->
+<div class="app-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Farmer Portal</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">My Farm</div>
+      <a href="/farmer/dashboard.html" class="nav-item">
+        <span class="nav-icon">&#9635;</span> Dashboard
+      </a>
+      <a href="/farmer/profile.html" class="nav-item active">
+        <span class="nav-icon">&#9711;</span> My Profile
+      </a>
+      <a href="/farmer/supply.html" class="nav-item">
+        <span class="nav-icon">&#9651;</span> My Crops
+      </a>
+
+      <div class="nav-section">Market</div>
+      <a href="/farmer/forecast.html" class="nav-item">
+        <span class="nav-icon">&#9650;</span> Demand Forecast
+      </a>
+
+      <div class="nav-section">Business</div>
+      <a href="/farmer/orders.html" class="nav-item">
+        <span class="nav-icon">&#9660;</span> My Orders
+      </a>
+    </nav>
+
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">
+        &#x2192; Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <div class="main-content">
+
+    <header class="top-header">
+      <div>
+        <span class="header-title">&#9651; My Farmer Profile</span>
+        <span class="header-subtitle">Registration, land details and crop listings</span>
+      </div>
+      <div id="header-actions"></div>
+    </header>
+
+    <div class="page-content">
+      <div id="profile-content">
+        <div class="empty-state"><div class="empty-icon"></div><p>Loading profile…</p></div>
+      </div>
+    </div>
+
+  </div><!-- /.main-content -->
+</div><!-- /.app-layout -->
+
+
+<!-- ═══════════════════════════════════════════════════
+     ADD CROP MODAL
+════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="add-crop-modal">
+  <div class="modal" style="max-width: 560px;">
+    <div class="modal-header">
+      <h3 class="modal-title">&#127807; Add Crop Listing</h3>
+      <button class="modal-close" onclick="closeAddCropModal()"></button>
+    </div>
+
+    <div style="overflow-y:auto; max-height:70vh;">
+      <!-- Type toggle -->
+      <div style="display:flex; gap:6px; margin-bottom:16px; background:var(--bg-input); border-radius:4px; padding:4px;">
+        <button id="type-btn-current"  class="btn btn-primary btn-sm" style="flex:1;" onclick="setCropType('current')">
+          &#128994; Available Now
+        </button>
+        <button id="type-btn-expected" class="btn btn-ghost btn-sm" style="flex:1;" onclick="setCropType('expected')">
+          &#128336; Future Harvest
+        </button>
+      </div>
+
+      <div class="crop-edit-grid">
+        <div class="form-group">
+          <label class="form-label">Crop Name <span class="required">*</span></label>
+          <select id="ac-crop" class="form-select">
+            <option value="">Select crop…</option>
+            <option>Tomato</option><option>Onion</option><option>Potato</option>
+            <option>Brinjal</option><option>Okra</option><option>Carrot</option>
+            <option>Cabbage</option><option>Cauliflower</option><option>Beans</option>
+            <option>Spinach</option><option>Chilli</option><option>Banana</option>
+            <option>Mango</option><option>Paddy</option><option>Maize</option>
+            <option>Groundnut</option><option>Sugarcane</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Variety</label>
+          <input id="ac-variety" class="form-input" placeholder="e.g. Hybrid, Country" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Area (acres) <span class="required">*</span></label>
+          <input id="ac-area" type="number" step="0.1" class="form-input" placeholder="e.g. 2.5" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Grade <span class="required">*</span></label>
+          <select id="ac-grade" class="form-select">
+            <option value="A">Grade A — Premium</option>
+            <option value="B">Grade B — Standard</option>
+            <option value="C">Grade C — Economy</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sowing Date</label>
+          <input id="ac-sowing" type="date" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Harvest Date <span class="required">*</span></label>
+          <input id="ac-harvest" type="date" class="form-input" />
+        </div>
+      </div>
+
+      <!-- Current supply fields -->
+      <div id="ac-current-fields">
+        <div class="form-group">
+          <label class="form-label">Available Quantity (kg) <span class="required">*</span></label>
+          <input id="ac-available" type="number" class="form-input" placeholder="kg ready to sell" />
+        </div>
+      </div>
+
+      <!-- Expected harvest fields -->
+      <div id="ac-expected-fields" class="hidden">
+        <div class="form-group">
+          <label class="form-label">Your Estimate (kg) <span style="color:var(--text-muted);font-weight:400;">optional override</span></label>
+          <input id="ac-confirmed-qty" type="number" class="form-input" placeholder="Leave blank to use AI estimate" />
+        </div>
+      </div>
+
+      <div class="crop-edit-grid">
+        <div class="form-group">
+          <label class="form-label">Expected Price (₹/kg)</label>
+          <input id="ac-price" type="number" step="0.5" class="form-input" placeholder="e.g. 28" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Minimum Order (kg)</label>
+          <input id="ac-minorder" type="number" class="form-input" value="50" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea id="ac-notes" class="form-textarea" rows="2"
+          placeholder="Quality, packaging, or any other details…"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAddCropModal()">Cancel</button>
+      <button class="btn btn-primary" id="ac-submit-btn" onclick="submitAddCrop()">
+        &#10003; Add Listing
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════ -->
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+
+<script>
+  /* ── Constants ── */
+  const DISTRICTS = [
+    'Chennai','Coimbatore','Madurai','Tiruchirappalli','Salem','Tirunelveli',
+    'Vellore','Erode','Thoothukudi','Namakkal','Karur','Thanjavur','Dindigul',
+    'Cuddalore','Krishnagiri','Dharmapuri','Tiruppur','Virudhunagar',
+    'Ramanathapuram','Sivaganga','Pudukkottai','Tiruvarur','Nagapattinam',
+    'Ariyalur','Perambalur','Kallakurichi','Ranipet','Chengalpattu',
+    'Villupuram','Kancheepuram','Tiruvannamalai','Tiruvallur','The Nilgiris',
+  ];
+
+  let _cropType = 'current';  // for add-crop modal
+
+  /* ════════════════════════════════════════════════
+     Bootstrap
+  ════════════════════════════════════════════════ */
+  async function init() {
+    try {
+      const data     = await API.get('/api/farmer/profile', { silent: true });
+      const profile  = data?.profile;
+      const lands    = data?.lands || [];
+
+      if (!profile) {
+        renderCreateForm();
+      } else {
+        await renderProfile(profile, lands);
+      }
+    } catch (e) {
+      console.error('[Profile] Init error:', e);
+    }
+  }
+
+  /* ════════════════════════════════════════════════
+     Registration form (first time)
+  ════════════════════════════════════════════════ */
+  function renderCreateForm() {
+    document.getElementById('profile-content').innerHTML = `
+      <div class="card">
+        <h2 style="margin-bottom:20px;">Complete Your Farmer Registration</h2>
+        <div class="alert alert-warn" style="margin-bottom:20px;">
+          <span class="alert-icon">&#9888;</span>
+          <span>Fill in all details accurately. Admin will verify your information before approving your account.</span>
+        </div>
+
+        <div class="section-title">Personal Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="required">*</span></label>
+            <input id="p-name" class="form-input" placeholder="As per government ID" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile <span class="required">*</span></label>
+            <input id="p-mobile" class="form-input" placeholder="10-digit number" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Address <span class="required">*</span></label>
+          <textarea id="p-address" class="form-textarea" placeholder="Full address with village/street"></textarea>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label class="form-label">Village / Town</label>
+            <input id="p-village" class="form-input" placeholder="Village name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taluk</label>
+            <input id="p-taluk" class="form-input" placeholder="Taluk" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">District <span class="required">*</span></label>
+            <select id="p-district" class="form-select">
+              <option value="">Select…</option>
+              ${DISTRICTS.map(d => `<option>${d}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pincode <span class="required">*</span></label>
+            <input id="p-pincode" class="form-input" placeholder="6-digit pincode" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">State <span class="required">*</span></label>
+            <input id="p-state" class="form-input" value="Tamil Nadu" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">GPS Latitude</label>
+            <input id="p-lat" class="form-input" placeholder="e.g. 12.9716" />
+            <span class="form-hint">Use Google Maps to find coordinates</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">GPS Longitude</label>
+            <input id="p-lng" class="form-input" placeholder="e.g. 79.1580" />
+          </div>
+        </div>
+
+        <div class="section-title">Government ID</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">ID Type <span class="required">*</span></label>
+            <select id="p-gov-type" class="form-select">
+              <option value="aadhaar">Aadhaar</option>
+              <option value="voter_id">Voter ID</option>
+              <option value="pan">PAN</option>
+              <option value="driving_license">Driving License</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ID Number <span class="required">*</span></label>
+            <input id="p-gov-num" class="form-input" placeholder="ID number" />
+          </div>
+        </div>
+
+        <div class="section-title">Bank Details (for payments)</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Account Number</label>
+            <input id="p-account" class="form-input" placeholder="Bank account number" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">IFSC Code</label>
+            <input id="p-ifsc" class="form-input" placeholder="e.g. SBIN0001234" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Bank Name</label>
+            <input id="p-bank" class="form-input" placeholder="Bank name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Account Holder Name</label>
+            <input id="p-holder" class="form-input" placeholder="Name as in bank records" />
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg" style="margin-top:16px;" onclick="submitProfile()" id="submit-btn">
+          &#10003; Submit for Verification
+        </button>
+      </div>`;
+  }
+
+  /* ════════════════════════════════════════════════
+     Render profile view + crop listings
+  ════════════════════════════════════════════════ */
+  async function renderProfile(p, lands) {
+    // Fetch crop listings
+    let listings = [];
+    try {
+      const supplyData = await API.get('/api/farmer/supply', { silent: true });
+      listings = supplyData?.listings || [];
+    } catch(_) {}
+
+    document.getElementById('header-actions').innerHTML = `
+      <button class="btn btn-primary btn-sm" onclick="openAddCropModal()">
+        &#127807; + Add Crop
+      </button>`;
+
+    document.getElementById('profile-content').innerHTML = `
+      <!-- Top two-column: Personal + Lands -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+
+        <!-- Personal Details -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">&#9711; Personal Details</span>
+            ${statusBadge(p.verification_status)}
+          </div>
+
+          ${p.verification_notes ? `
+            <div class="alert alert-info" style="margin-bottom:12px;">
+              <span class="alert-icon">&#9432;</span>
+              <span>${escapeHtml(p.verification_notes)}</span>
+            </div>` : ''}
+
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="label">Name</div>
+              <div class="value">${escapeHtml(p.full_name)}</div>
+            </div>
+            <div class="info-item">
+              <div class="label">Mobile</div>
+              <div class="value">${escapeHtml(p.mobile)}</div>
+            </div>
+            <div class="info-item">
+              <div class="label">Email</div>
+              <div class="value">${escapeHtml(p.email)}</div>
+            </div>
+            <div class="info-item">
+              <div class="label">District</div>
+              <div class="value">${escapeHtml(p.district)}, ${escapeHtml(p.state)}</div>
+            </div>
+            <div class="info-item" style="grid-column:1/-1;">
+              <div class="label">Address</div>
+              <div class="value">${escapeHtml(p.address)}</div>
+            </div>
+            <div class="info-item">
+              <div class="label">Gov ID (${escapeHtml(p.gov_id_type)})</div>
+              <div class="value">${escapeHtml(p.gov_id_number || '—')}</div>
+            </div>
+            <div class="info-item">
+              <div class="label">Bank / IFSC</div>
+              <div class="value">
+                ${p.bank_account ? '****' + p.bank_account.slice(-4) : '—'}
+                &nbsp;·&nbsp;${escapeHtml(p.bank_ifsc || '—')}
+              </div>
+            </div>
+            ${p.gps_lat ? `
+            <div class="info-item" style="grid-column:1/-1;">
+              <div class="label">GPS Coordinates</div>
+              <div class="value">${p.gps_lat}, ${p.gps_lng}</div>
+            </div>` : ''}
+          </div>
+        </div>
+
+        <!-- Land Details -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">&#127959; My Lands</span>
+            <button class="btn btn-outline btn-sm" onclick="showAddLandModal()">+ Add Land</button>
+          </div>
+
+          ${lands.length
+            ? lands.map(l => `
+                <div style="padding:10px 12px; background:var(--bg-elevated); border-radius:var(--radius-sm); margin-bottom:8px; font-size:0.82rem;">
+                  <strong>${l.land_area_acres} acres</strong>
+                  <span style="color:var(--text-muted);">(${(l.land_area_acres * 43560).toLocaleString()} sq ft)</span>
+                  <br />
+                  <span style="color:var(--text-muted);">Irrigation:</span> ${escapeHtml(l.irrigation_type)}
+                  &nbsp;·&nbsp;
+                  <span style="color:var(--text-muted);">Soil:</span> ${escapeHtml(l.soil_type || 'Unknown')}
+                  ${l.survey_number ? `<br /><span style="color:var(--text-muted);">Survey:</span> ${escapeHtml(l.survey_number)}` : ''}
+                </div>`).join('')
+            : `<div class="empty-state" style="padding:20px;">
+                 <div class="empty-icon">&#127959;</div>
+                 <p>No lands registered yet</p>
+               </div>`}
+        </div>
+
+      </div><!-- /top grid -->
+
+      <!-- ── Crop Listings ── -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">&#127807; My Crop Listings</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span style="font-size:0.75rem; color:var(--text-muted);">${listings.length} listing${listings.length !== 1 ? 's' : ''}</span>
+            <button class="btn btn-primary btn-sm" onclick="openAddCropModal()">+ Add Crop</button>
+          </div>
+        </div>
+
+        <!-- Tab filter -->
+        <div style="display:flex; gap:6px; margin-bottom:16px;">
+          <button class="btn btn-primary btn-sm" id="tab-all"      onclick="filterCrops('all')">All</button>
+          <button class="btn btn-outline btn-sm" id="tab-current"  onclick="filterCrops('current')">&#128994; Available Now</button>
+          <button class="btn btn-outline btn-sm" id="tab-expected" onclick="filterCrops('expected')">&#128336; Future Harvest</button>
+        </div>
+
+        <div id="crop-listings-container">
+          ${renderCropCards(listings, 'all')}
+        </div>
+      </div>`;
+
+    // Store listings globally for tab filtering
+    window._farmerListings = listings;
+  }
+
+  /* ════════════════════════════════════════════════
+     Render crop cards (with inline edit)
+  ════════════════════════════════════════════════ */
+  function renderCropCards(listings, tab) {
+    const filtered = tab === 'all' ? listings : listings.filter(l => l.supply_type === tab);
+    if (!filtered.length) {
+      return `<div class="empty-state">
+                <div class="empty-icon" style="font-size:2rem;">&#127807;</div>
+                <p style="margin-top:8px;">No crop listings yet. Click "+ Add Crop" to get started.</p>
+              </div>`;
+    }
+
+    return filtered.map(l => `
+      <div class="crop-card" id="crop-card-${l.id}">
+        <div class="crop-card-header">
+          <div class="crop-card-title">
+            &#127807; ${escapeHtml(l.crop_name)}
+            ${l.crop_variety ? `<span style="color:var(--text-muted);font-weight:400;font-size:0.8rem;">(${escapeHtml(l.crop_variety)})</span>` : ''}
+            <span class="badge badge-info" style="font-size:0.65rem;">Grade ${escapeHtml(l.grade)}</span>
+            ${statusBadge(l.status)}
+            ${l.supply_type === 'expected' ? '<span class="ai-badge">&#129302; AI Yield</span>' : ''}
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-outline btn-sm" onclick="toggleCropEdit(${l.id})">&#9998; Edit</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--accent-admin);"
+              onclick="deleteCrop(${l.id}, '${escapeHtml(l.crop_name)}')">&#10005;</button>
+          </div>
+        </div>
+
+        <!-- Read-only meta -->
+        <div class="crop-card-meta">
+          ${l.supply_type === 'current'
+            ? `<span class="crop-meta-item">&#128994; <strong style="color:var(--primary);">${formatKg(l.available_kg)}</strong> available</span>`
+            : `<span class="crop-meta-item">&#129302; AI Est: ${formatKg(l.estimated_yield_min_kg)} – ${formatKg(l.estimated_yield_max_kg)}</span>`}
+          ${l.price_per_kg_expected  ? `<span class="crop-meta-item">&#8377; ${formatCurrency(l.price_per_kg_expected)}/kg</span>` : ''}
+          ${l.minimum_order_kg       ? `<span class="crop-meta-item">Min: ${formatKg(l.minimum_order_kg)}</span>` : ''}
+          ${l.expected_harvest_date  ? `<span class="crop-meta-item">&#128336; Harvest: ${formatDate(l.expected_harvest_date)}</span>` : ''}
+          ${l.cultivated_area_acres  ? `<span class="crop-meta-item">&#127759; ${l.cultivated_area_acres} acres</span>` : ''}
+        </div>
+
+        <!-- Inline edit form -->
+        <div class="crop-edit-form" id="edit-form-${l.id}">
+          <div class="section-title" style="margin-top:0;">Edit Crop Details</div>
+          <div class="crop-edit-grid">
+            <div class="form-group">
+              <label class="form-label">Available Qty (kg)</label>
+              <input id="ef-qty-${l.id}" type="number" class="form-input"
+                value="${l.available_kg || ''}" placeholder="kg available" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Price (₹/kg)</label>
+              <input id="ef-price-${l.id}" type="number" step="0.5" class="form-input"
+                value="${l.price_per_kg_expected || ''}" placeholder="e.g. 28" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Min Order (kg)</label>
+              <input id="ef-minorder-${l.id}" type="number" class="form-input"
+                value="${l.minimum_order_kg || 50}" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Grade</label>
+              <select id="ef-grade-${l.id}" class="form-select">
+                <option value="A" ${l.grade === 'A' ? 'selected' : ''}>Grade A — Premium</option>
+                <option value="B" ${l.grade === 'B' ? 'selected' : ''}>Grade B — Standard</option>
+                <option value="C" ${l.grade === 'C' ? 'selected' : ''}>Grade C — Economy</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Harvest Date</label>
+              <input id="ef-harvest-${l.id}" type="date" class="form-input"
+                value="${l.expected_harvest_date ? l.expected_harvest_date.split('T')[0] : ''}" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Your Qty Estimate (kg)</label>
+              <input id="ef-confirmed-${l.id}" type="number" class="form-input"
+                value="${l.farmer_confirmed_qty_kg || ''}" placeholder="Optional override" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea id="ef-notes-${l.id}" class="form-textarea" rows="2"
+              placeholder="Quality, packaging details…">${escapeHtml(l.notes || '')}</textarea>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="toggleCropEdit(${l.id})">Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="saveCropEdit(${l.id})">
+              &#10003; Save Changes
+            </button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  /* ════════════════════════════════════════════════
+     Tab filter for crop listings
+  ════════════════════════════════════════════════ */
+  function filterCrops(tab) {
+    ['all', 'current', 'expected'].forEach(t => {
+      const btn = document.getElementById('tab-' + t);
+      if (btn) btn.className = `btn btn-sm ${t === tab ? 'btn-primary' : 'btn-outline'}`;
+    });
+    const container = document.getElementById('crop-listings-container');
+    if (container) container.innerHTML = renderCropCards(window._farmerListings || [], tab);
+  }
+
+  /* ════════════════════════════════════════════════
+     Toggle inline edit form
+  ════════════════════════════════════════════════ */
+  function toggleCropEdit(id) {
+    const form = document.getElementById('edit-form-' + id);
+    if (form) form.classList.toggle('open');
+  }
+
+  /* ════════════════════════════════════════════════
+     Save inline crop edit
+  ════════════════════════════════════════════════ */
+  async function saveCropEdit(id) {
+    const payload = {
+      available_kg:            parseFloat(document.getElementById('ef-qty-' + id)?.value || 0),
+      price_per_kg_expected:   parseFloat(document.getElementById('ef-price-' + id)?.value) || null,
+      minimum_order_kg:        parseInt(document.getElementById('ef-minorder-' + id)?.value || 50),
+      grade:                   document.getElementById('ef-grade-' + id)?.value,
+      expected_harvest_date:   document.getElementById('ef-harvest-' + id)?.value || null,
+      farmer_confirmed_qty_kg: parseFloat(document.getElementById('ef-confirmed-' + id)?.value) || null,
+      notes:                   document.getElementById('ef-notes-' + id)?.value || null,
+    };
+
+    try {
+      await API.patch(`/api/farmer/supply/${id}`, payload);
+      showToast('Crop listing updated!', 'success');
+      // Refresh listings
+      const supplyData = await API.get('/api/farmer/supply', { silent: true });
+      window._farmerListings = supplyData?.listings || [];
+      document.getElementById('crop-listings-container').innerHTML =
+        renderCropCards(window._farmerListings, 'all');
+    } catch (e) {
+      console.error('[Crop Edit]', e);
+    }
+  }
+
+  /* ════════════════════════════════════════════════
+     Delete crop listing
+  ════════════════════════════════════════════════ */
+  async function deleteCrop(id, name) {
+    if (!confirm(`Remove "${name}" from your listings?`)) return;
+    try {
+      await API.delete(`/api/farmer/supply/${id}`);
+      showToast(`${name} listing removed`, 'success');
+      window._farmerListings = (window._farmerListings || []).filter(l => l.id !== id);
+      document.getElementById('crop-listings-container').innerHTML =
+        renderCropCards(window._farmerListings, 'all');
+      document.getElementById('header-actions').querySelector('button').textContent;
+    } catch (e) {
+      console.error('[Delete Crop]', e);
+    }
+  }
+
+  /* ════════════════════════════════════════════════
+     Add Crop Modal helpers
+  ════════════════════════════════════════════════ */
+  function openAddCropModal() {
+    // Set default harvest date 2 months out
+    const d = new Date(); d.setMonth(d.getMonth() + 2);
+    document.getElementById('ac-harvest').value = d.toISOString().split('T')[0];
+    document.getElementById('add-crop-modal').classList.add('show');
+    setCropType('current');
+  }
+
+  function closeAddCropModal() {
+    document.getElementById('add-crop-modal').classList.remove('show');
+  }
+
+  function setCropType(type) {
+    _cropType = type;
+    document.getElementById('type-btn-current').className  = `btn btn-sm ${type === 'current'  ? 'btn-primary' : 'btn-ghost'}`;
+    document.getElementById('type-btn-expected').className = `btn btn-sm ${type === 'expected' ? 'btn-primary' : 'btn-ghost'}`;
+    document.getElementById('ac-current-fields').classList.toggle('hidden',  type !== 'current');
+    document.getElementById('ac-expected-fields').classList.toggle('hidden', type !== 'expected');
+  }
+
+  async function submitAddCrop() {
+    const crop    = document.getElementById('ac-crop').value;
+    const area    = document.getElementById('ac-area').value;
+    const harvest = document.getElementById('ac-harvest').value;
+
+    if (!crop || !area || !harvest) {
+      showToast('Fill in Crop Name, Area, and Harvest Date', 'warn');
+      return;
+    }
+
+    const btn = document.getElementById('ac-submit-btn');
+    setLoading(btn, true);
+
+    try {
+      const res = await API.post('/api/farmer/supply', {
+        crop_name:               crop,
+        crop_variety:            document.getElementById('ac-variety').value || null,
+        cultivated_area_acres:   parseFloat(area),
+        supply_type:             _cropType,
+        grade:                   document.getElementById('ac-grade').value,
+        sowing_date:             document.getElementById('ac-sowing').value || null,
+        expected_harvest_date:   harvest,
+        available_kg:            _cropType === 'current' ? parseFloat(document.getElementById('ac-available').value || 0) : 0,
+        farmer_confirmed_qty_kg: document.getElementById('ac-confirmed-qty').value || null,
+        price_per_kg_expected:   document.getElementById('ac-price').value || null,
+        minimum_order_kg:        parseInt(document.getElementById('ac-minorder').value || 50),
+        notes:                   document.getElementById('ac-notes').value || null,
+      });
+
+      const msg = res?.ai_yield_estimate
+        ? `Listing added! AI estimate: ${formatKg(res.ai_yield_estimate.avg_kg)} avg yield`
+        : 'Crop listing added!';
+      showToast(msg, 'success');
+      closeAddCropModal();
+
+      // Refresh crop listings without full page reload
+      const supplyData = await API.get('/api/farmer/supply', { silent: true });
+      window._farmerListings = supplyData?.listings || [];
+      document.getElementById('crop-listings-container').innerHTML =
+        renderCropCards(window._farmerListings, 'all');
+
+    } catch (e) {
+      console.error('[Add Crop]', e);
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  /* ════════════════════════════════════════════════
+     Submit new profile (first-time registration)
+  ════════════════════════════════════════════════ */
+  async function submitProfile() {
+    const btn  = document.getElementById('submit-btn');
+    const data = {
+      full_name:       document.getElementById('p-name').value,
+      mobile:          document.getElementById('p-mobile').value,
+      address:         document.getElementById('p-address').value,
+      village:         document.getElementById('p-village').value,
+      taluk:           document.getElementById('p-taluk').value,
+      district:        document.getElementById('p-district').value,
+      state:           document.getElementById('p-state').value,
+      pincode:         document.getElementById('p-pincode').value,
+      gps_lat:         document.getElementById('p-lat').value || null,
+      gps_lng:         document.getElementById('p-lng').value || null,
+      gov_id_type:     document.getElementById('p-gov-type').value,
+      gov_id_number:   document.getElementById('p-gov-num').value,
+      bank_account:    document.getElementById('p-account').value || null,
+      bank_ifsc:       document.getElementById('p-ifsc').value || null,
+      bank_name:       document.getElementById('p-bank').value || null,
+      account_holder:  document.getElementById('p-holder').value || null,
+    };
+
+    if (!data.full_name || !data.mobile || !data.address || !data.district || !data.pincode || !data.gov_id_number) {
+      showToast('Fill in all required fields', 'warn');
+      return;
+    }
+
+    setLoading(btn, true);
+    try {
+      await API.post('/api/farmer/profile', data);
+      showToast('Profile submitted for admin verification!', 'success');
+      setTimeout(() => init(), 1000);
+    } catch (e) {
+      console.error('[Profile Submit]', e);
+    } finally {
+      setLoading(btn, false);
+    }
+  }
+
+  /* ════════════════════════════════════════════════
+     Add Land (quick prompt)
+  ════════════════════════════════════════════════ */
+  function showAddLandModal() {
+    const acres      = prompt('Land area in acres (e.g. 2.5):');
+    if (!acres || isNaN(acres)) return;
+    const irrigation = prompt('Irrigation type:\n  drip / sprinkler / flood / rainfed / borewell / canal') || 'drip';
+    API.post('/api/farmer/lands', { land_area_acres: parseFloat(acres), irrigation_type: irrigation })
+      .then(() => { showToast('Land added!', 'success'); init(); });
+  }
+
+  /* ── Bootstrap ── */
+  init();
+</script>
+
+<!-- Language switcher -->
+<script>
+  const ls = document.getElementById('nav-lang-switcher');
+  if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+</script>
+
+</body>
+</html>

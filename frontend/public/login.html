@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — FarmConnect</title>
+  <meta name="description" content="Sign in to FarmConnect — Smart Farm-to-Buyer Supply Chain Platform">
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+<div class="auth-wrapper">
+  <div class="auth-card fade-in">
+    <!-- Language Switcher -->
+    <div class="lang-switcher" id="lang-switcher" style="justify-content:center;margin-bottom:16px;" aria-label="Language selection"></div>
+
+    <div class="auth-logo">
+      <div class="logo-big"></div>
+      <h1 class="auth-title" data-i18n="auth.login">Login</h1>
+      <p class="auth-subtitle">FarmConnect Platform</p>
+    </div>
+
+    <div id="alert-box" class="alert alert-danger hidden">
+      <span id="alert-msg" data-i18n="auth.loginFailed">Invalid credentials</span>
+    </div>
+
+    <form id="login-form" method="post" action="#" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="email">
+          <span data-i18n="auth.email">Email Address</span>
+          <span class="required">*</span>
+        </label>
+        <input id="email" name="email" type="email" class="form-input"
+          placeholder="you@example.com" autocomplete="email" required>
+        <span class="form-error" id="email-error">Enter a valid email</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="password">
+          <span data-i18n="auth.password">Password</span>
+          <span class="required">*</span>
+        </label>
+        <input id="password" name="password" type="password" class="form-input"
+          placeholder="" autocomplete="current-password" required>
+        <span class="form-error" id="password-error">Password is required</span>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg" id="login-btn" style="margin-top:8px;">
+        <span data-i18n="auth.loginBtn">Sign In</span>
+      </button>
+    </form>
+
+    <div style="text-align:center;margin-top:20px;font-size:0.875rem;color:var(--text-secondary);">
+      <span data-i18n="auth.dontHaveAccount">Don't have an account?</span>
+      <a href="/register.html" data-i18n="auth.register">Register here</a>
+    </div>
+
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);font-size:0.75rem;color:var(--text-muted);text-align:center;">
+      <strong style="color:var(--text-secondary);">Demo Login</strong><br>
+      Admin: <code>admin@farmplatform.local</code> / <code>Admin@Secure2024!</code><br>
+      Farmer: <code>farmer1@demo.com</code> / <code>Demo@1234!</code><br>
+      Buyer: <code>buyer1@demo.com</code> / <code>Demo@1234!</code>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <a href="/index.html" style="font-size:0.8rem;color:var(--text-muted);">Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Render language switcher
+  const switcher = document.getElementById('lang-switcher');
+  if (switcher) switcher.innerHTML = I18N.renderSwitcher();
+
+  const form = document.getElementById('login-form');
+  const alertBox = document.getElementById('alert-box');
+  const alertMsg = document.getElementById('alert-msg');
+  const loginBtn = document.getElementById('login-btn');
+
+  function showError(msg) {
+    alertMsg.textContent = msg;
+    alertBox.classList.remove('hidden');
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    alertBox.classList.add('hidden');
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+      showError(I18N.t('validation.fieldRequired', 'Please fill in all fields'));
+      return;
+    }
+
+    setLoading(loginBtn, true);
+    try {
+      const data = await API.post('/api/auth/login', { email, password }, { silent: true });
+      if (data && data.accessToken) {
+        localStorage.setItem('access_token', data.accessToken);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        const role = data.user.role;
+        if (role === 'admin') window.location.href = '/admin/dashboard.html';
+        else if (role === 'farmer') window.location.href = '/farmer/dashboard.html';
+        else if (role === 'customer') window.location.href = '/customer/dashboard.html';
+        else window.location.href = '/index.html';
+      }
+    } catch (err) {
+      console.error('[LOGIN ERROR]', err);
+      const msg = err?.data?.error
+        || (err instanceof Error ? err.message : null)
+        || (typeof err === 'string' ? err : null)
+        || I18N.t('auth.loginFailed', 'Invalid credentials');
+      showError(msg);
+    } finally {
+      setLoading(loginBtn, false);
+    }
+  });
+});
+</script>
+</body>
+</html>

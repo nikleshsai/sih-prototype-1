@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Buyer dashboard to track orders, deliveries, and marketplace activity on FarmConnect." />
+  <title>Buyer Dashboard — FarmConnect</title>
+  <link rel="stylesheet" href="/css/main.css" />
+  <style>
+    /* ── Page-level enhancements ── */
+
+    /* Stat cards with accent left-border */
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--stat-color, var(--primary));
+      border-radius: 3px 0 0 3px;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--stat-color, var(--primary));
+      line-height: 1;
+    }
+
+    /* Recent order row */
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+      transition: background var(--transition);
+    }
+
+    .order-row:last-child { border-bottom: none; }
+
+    .order-row:hover {
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+
+    .order-ref {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--primary);
+      font-family: monospace;
+    }
+
+    .order-meta {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .order-time {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    /* Delivery card */
+    .delivery-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 13px 14px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent-info);
+      margin-bottom: 8px;
+      transition: transform var(--transition);
+    }
+
+    .delivery-card:hover { transform: translateX(2px); }
+
+    .delivery-ref {
+      font-size: 0.75rem;
+      color: var(--primary);
+      font-family: monospace;
+    }
+
+    .delivery-info {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Quick order card gradient */
+    .quick-order-card {
+      background: linear-gradient(135deg, rgba(56,139,253,0.08), rgba(56,139,253,0.02));
+      border-color: rgba(56,139,253,0.2) !important;
+    }
+
+    .quick-order-card p {
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 520px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Two-column grid */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 820px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     APP LAYOUT
+════════════════════════════════════════════════════ -->
+<div class="app-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">FarmConnect</div>
+        <div class="logo-sub">Buyer Portal</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Shopping</div>
+      <a href="/customer/dashboard.html" class="nav-item active">
+        <span class="nav-icon">&#9635;</span> Dashboard
+      </a>
+      <a href="/customer/marketplace.html" class="nav-item">
+        <span class="nav-icon">&#9632;</span> Marketplace
+      </a>
+      <a href="/customer/orders.html" class="nav-item">
+        <span class="nav-icon">&#9660;</span> My Orders
+      </a>
+
+      <div class="nav-section">Account</div>
+      <a href="/customer/profile.html" class="nav-item">
+        <span class="nav-icon">&#9711;</span> My Profile
+      </a>
+    </nav>
+
+    <div class="nav-lang-switcher" id="nav-lang-switcher"></div>
+
+    <div class="sidebar-footer">
+      <button onclick="API.logout()" class="btn btn-ghost btn-sm btn-full">
+        &#x2192; Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ── -->
+  <div class="main-content">
+
+    <!-- Top Header -->
+    <header class="top-header">
+      <div>
+        <span class="header-title">&#128101; Buyer Dashboard</span>
+        <span class="header-subtitle" id="buyer-welcome">Loading…</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span id="verify-badge"></span>
+        <a href="/customer/marketplace.html" class="btn btn-primary btn-sm">
+          &#127807; Browse Market
+        </a>
+      </div>
+    </header>
+
+    <!-- Page Body -->
+    <div class="page-content">
+
+      <!-- Profile incomplete alert (injected by JS) -->
+      <div id="profile-alert"></div>
+
+      <!-- ── Stats Grid (skeleton while loading) ── -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card skeleton" style="height:80px;"></div>
+        <div class="stat-card skeleton" style="height:80px;"></div>
+        <div class="stat-card skeleton" style="height:80px;"></div>
+        <div class="stat-card skeleton" style="height:80px;"></div>
+      </div>
+
+      <!-- ── Two-column: Recent Orders + Quick Order ── -->
+      <div class="grid-2">
+
+        <!-- Recent Orders card -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">&#128203; Recent Orders</span>
+            <a href="/customer/orders.html" class="btn btn-ghost btn-sm">View All &#8594;</a>
+          </div>
+          <div id="recent-orders">
+            <div class="empty-state">
+              <div class="empty-icon"></div>
+              <p>Loading orders…</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Order card -->
+        <div class="card quick-order-card">
+          <div class="card-header">
+            <span class="card-title">&#9889; Quick Order</span>
+          </div>
+          <p>
+            Need produce urgently? Browse available supply and place an order instantly,
+            or submit a custom requirement to multiple farmers at once.
+          </p>
+          <a href="/customer/marketplace.html" class="btn btn-primary btn-full">
+            &#127807; Browse Available Supply
+          </a>
+          <div style="height:10px;"></div>
+          <a href="/customer/orders.html?new=1" class="btn btn-outline btn-full">
+            + Place Custom Order
+          </a>
+        </div>
+
+      </div><!-- /.grid-2 -->
+
+      <!-- ── Active Deliveries ── -->
+      <div class="card" style="margin-top: 16px;">
+        <div class="card-header">
+          <span class="card-title">&#128666; Active Deliveries</span>
+        </div>
+        <div id="active-deliveries">
+          <div class="empty-state">
+            <div class="empty-icon"></div>
+            <p>Loading deliveries…</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.page-content -->
+  </div><!-- /.main-content -->
+</div><!-- /.app-layout -->
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════ -->
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/api.js"></script>
+
+<script>
+  /* ════════════════════════════════════════════════
+     Page initialisation — fetch profile then orders
+  ════════════════════════════════════════════════ */
+  async function init() {
+    // Show email as fallback while profile loads
+    const user = API.getUser();
+    document.getElementById('buyer-welcome').textContent = user.email || '';
+
+    try {
+      const { profile } = await API.get('/api/customer/profile', { silent: true });
+
+      // Profile not yet set up
+      if (!profile) {
+        document.getElementById('profile-alert').innerHTML = `
+          <div class="alert alert-warn" style="margin-bottom:16px;">
+            <span class="alert-icon">&#9888;</span>
+            <span>
+              Complete your buyer profile to place orders.
+              <a href="/customer/profile.html">Complete Profile &#8594;</a>
+            </span>
+          </div>`;
+
+        document.getElementById('stats-grid').innerHTML = `
+          <div style="grid-column:1/-1;" class="empty-state">
+            <div class="empty-icon" style="font-size:2.5rem;">&#128101;</div>
+            <h3 style="margin-top:8px;">Profile Required</h3>
+            <p>Set up your buyer profile to unlock the full marketplace.</p>
+            <a href="/customer/profile.html" class="btn btn-primary" style="margin-top:14px;">
+              Set Up Profile &#8594;
+            </a>
+          </div>`;
+        return;
+      }
+
+      // Show verification badge
+      const statusColors = {
+        pending:  'badge-warn',
+        approved: 'badge-success',
+        rejected: 'badge-danger',
+      };
+      document.getElementById('verify-badge').innerHTML =
+        `<span class="badge ${statusColors[profile.verification_status] || 'badge-muted'}">
+           ${escapeHtml(profile.verification_status)}
+         </span>`;
+
+      // Update welcome subtitle with business/buyer name
+      document.getElementById('buyer-welcome').textContent =
+        profile.business_name || profile.full_name || user.email;
+
+      // Now load order data
+      await loadOrders();
+
+    } catch (e) {
+      console.error('[Dashboard] Init error:', e);
+    }
+  }
+
+  /* ════════════════════════════════════════════════
+     Load and render orders, stats, deliveries
+  ════════════════════════════════════════════════ */
+  async function loadOrders() {
+    try {
+      const data   = await API.get('/api/customer/orders');
+      const orders = (data && data.orders) ? data.orders : [];
+
+      /* ── Stats ── */
+      const stats = {
+        total:           orders.length,
+        active:          orders.filter(o => ['matched', 'confirmed', 'in_fulfillment'].includes(o.status)).length,
+        delivered:       orders.filter(o => o.status === 'delivered').length,
+        pending_payment: orders.filter(o => o.payment_status === 'unpaid' || o.payment_status === 'partial').length,
+      };
+
+      document.getElementById('stats-grid').innerHTML = `
+        <div class="stat-card" style="--stat-color:var(--accent-info)">
+          <div class="stat-label">Total Orders</div>
+          <div class="stat-value">${stats.total}</div>
+        </div>
+        <div class="stat-card" style="--stat-color:var(--accent-warn)">
+          <div class="stat-label">Active Orders</div>
+          <div class="stat-value">${stats.active}</div>
+        </div>
+        <div class="stat-card" style="--stat-color:var(--accent-success)">
+          <div class="stat-label">Delivered</div>
+          <div class="stat-value">${stats.delivered}</div>
+        </div>
+        <div class="stat-card" style="--stat-color:var(--accent-admin)">
+          <div class="stat-label">Payment Pending</div>
+          <div class="stat-value">${stats.pending_payment}</div>
+        </div>`;
+
+      /* ── Recent Orders ── */
+      const recentContainer = document.getElementById('recent-orders');
+
+      if (!orders.length) {
+        recentContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon" style="font-size:2rem;">&#128203;</div>
+            <p style="margin-top:8px;">No orders yet. Browse the marketplace to get started!</p>
+          </div>`;
+      } else {
+        recentContainer.innerHTML = orders.slice(0, 5).map(o => `
+          <div class="order-row">
+            <div>
+              <div class="order-ref">${escapeHtml(o.order_ref)}</div>
+              <div class="order-meta">
+                ${escapeHtml(o.crop_name)} &middot; ${formatKg(o.quantity_kg_requested)} &middot; ${o.farmer_count} farmer(s)
+              </div>
+            </div>
+            <div style="text-align:right;">
+              ${statusBadge(o.status)}
+              <div class="order-time">${timeAgo(o.created_at)}</div>
+            </div>
+          </div>`).join('');
+      }
+
+      /* ── Active Deliveries ── */
+      const activeDeliveries = orders.filter(o => o.status === 'in_fulfillment');
+      const delContainer     = document.getElementById('active-deliveries');
+
+      if (!activeDeliveries.length) {
+        delContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon" style="font-size:2rem;">&#128666;</div>
+            <p style="margin-top:8px;">No active deliveries in progress.</p>
+          </div>`;
+      } else {
+        delContainer.innerHTML = activeDeliveries.map(o => `
+          <div class="delivery-card">
+            <div>
+              <div class="delivery-ref">${escapeHtml(o.order_ref)}</div>
+              <div class="delivery-info">
+                ${escapeHtml(o.crop_name)}
+                &middot; ${formatKg(o.quantity_kg_fulfilled)}
+                &middot; Deliver by <strong>${formatDate(o.delivery_date_required)}</strong>
+              </div>
+            </div>
+            <a href="/customer/orders.html?track=${o.id}" class="btn btn-outline btn-sm">
+              &#128270; Track
+            </a>
+          </div>`).join('');
+      }
+
+    } catch (e) {
+      console.error('[Dashboard] Orders error:', e);
+    }
+  }
+
+  /* ── Bootstrap ── */
+  init();
+</script>
+
+<!-- Language switcher -->
+<script>
+  const ls = document.getElementById('nav-lang-switcher');
+  if (ls && typeof I18N !== 'undefined') ls.innerHTML = I18N.renderSwitcher();
+</script>
+
+</body>
+</html>
