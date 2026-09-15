@@ -1,2 +1,2 @@
-﻿/** * Frontend Configuration * Sets the backend API base URL for the API client. * * In development (frontend served separately from backend): * window.__API_BASE_URL__ = 'http://localhost:4000' * * In production (when backend serves the frontend from the same origin): * window.__API_BASE_URL__ = '' (same-origin, no prefix needed) * * Change this file to point to your deployed backend URL in production. */
-window.__API_BASE_URL__ = 'http://localhost:4000';
+/** * Frontend Configuration * Sets the backend API base URL for the API client. * * In development (frontend served separately from backend): * window.__API_BASE_URL__ = 'http://localhost:4000' * * In production (when backend serves the frontend from the same origin): * window.__API_BASE_URL__ = '' (same-origin, no prefix needed) * * Change this file to point to your deployed backend URL in production. */
+window.__API_BASE_URL__ = 'https://YOUR-APP-NAME.onrender.com'; // ← Replace with your actual Render URL
